@@ -1,17 +1,15 @@
 """
-My own implementation based on this,
-which i'm calling Hex
-
-could call it HexCTRNN but jeez what a mouthful
+My own implementation based on this, to be customised to load in existing structures
 """
 
+"""Handles the continuous-time recurrent neural network implementation."""
 from __future__ import division
 
 from neat.graphs import required_for_output
 from neat.six_util import itervalues, iteritems
 
 
-class HexNodeEval(object):
+class CTRNNNodeEval(object):
     def __init__(self, time_constant, activation, aggregation, bias, response, links):
         self.time_constant = time_constant
         self.activation = activation
@@ -21,29 +19,13 @@ class HexNodeEval(object):
         self.links = links
 
 
-class Hex(object):
-    """
-    Hex - is a weird CTRNN. This is because for starters i'm trying to maximize greppability
-        greppable - to be easy to use, diagnose, understand, work with, handle, etc.
-        
-    So i'm going to make it so I can view the entire network as a 16x16 grid, with hexadecimal coordinates,
-    and special nodes in the top-left corner for input, output, and selfmod nodes.
-        net[0,1:] is outputs
-        net[1:8,0] is selfmods
-        net[(0,0),(1,1),...] is inputs
 
-        i.e. rows, columns, and diagonals from top left.
-
-    This means that there is a highly limited size of it, since there can only be 256 neurons total in a given Hex.
-        it can of course be easily extended i'm just doing it this way so i can view the entire network easily,
-        and because rather than extending the range of each dimension i'll probably add dimensions instead. not sure.
-    """
-
-    def __init__(self, inputs, outputs, selfmods, node_evals):
+class CTRNN(object):
+    """Sets up the ctrnn network itself."""
+    def __init__(self, inputs, outputs, node_evals):
         # pin nodes; constant for the given environment usually
         self.input_nodes = inputs
         self.output_nodes = outputs
-        self.selfmod_nodes = selfmods
 
         # node evals = the dest. nodes from when a given node fires?
         self.node_evals = node_evals
@@ -58,7 +40,7 @@ class Hex(object):
             # init of the meat of the graph.
             """
             node_evals:
-
+            
             [
                 node: key for the node itself
                 ne: "node eval" or the dest. nodes from this one.
@@ -68,29 +50,24 @@ class Hex(object):
                         w: weight of connection to it
                     ]
             ]
-
-
+            
+            
             So.
             How do they make the one for the init of this example? 
                 oh they use the above class: CTRNNNodeEval().links
             Because then we can OI FUTURE SELF
-
+            
             modify this class slightly so the constructor can take a pre-existing CTRNN
                 THIS MIGHT ALREADY BE HAPPENING IN THE create() FUNCTION, NEED MORE RESEARCH
                 probs best for us to do it ourselves though, lest we delve too far into forces we don't understand
             and then map our existing one to a more greppable format.
-            
-            actually we will not be mapping one yet
-            we will be initializing it to random weights that are fully connected from 
-                inputs -> selfmods
-                inputs -> outputs
-                (but not selfmods -> outputs, selfmods don't output anything directly)
             """
 
             for node, ne in iteritems(self.node_evals):
                 v[node] = 0.0
                 for i, w in ne.links:
-                    v[i] = w
+                    # not using w, interesting
+                    v[i] = 0.0
 
         self.active = 0
         self.time_seconds = 0.0
@@ -100,12 +77,12 @@ class Hex(object):
         self.active = 0
         self.time_seconds = 0.0
 
+
     def set_node_value(self, node_key, value):
         for v in self.values:
             v[node_key] = value
 
     def get_max_time_step(self):  # pragma: no cover
-        # why?
         # TODO: Compute max time step that is known to be numerically stable for
         # the current network configuration.
         # pylint: disable=no-self-use
@@ -146,6 +123,7 @@ class Hex(object):
 
         ovalues = self.values[1 - self.active]
         return [ovalues[i] for i in self.output_nodes]
+
 
     @staticmethod
     def create(genome, config, time_constant):
