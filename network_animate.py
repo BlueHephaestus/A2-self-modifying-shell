@@ -13,7 +13,7 @@ class Network():
         self.fig, self.ax = plt.subplots()
         self.mat = self.ax.matshow(self.net)
         self.cb = plt.colorbar(self.mat)
-        self.frames_n = 128
+        self.frames_n = 12800000
 
     def update(self, frame_i):
         # each timestep
@@ -24,7 +24,7 @@ class Network():
         self.mat.set_clim(np.amin(self.net), np.amax(self.net))
 
     def main(self):
-        _ = animation.FuncAnimation(self.fig, self.update, frames=self.frames_n, interval=50, repeat=False)#needs ref
+        _ = animation.FuncAnimation(self.fig, self.update, frames=self.frames_n, interval=0, repeat=False)#needs ref
         plt.show()
 
 if __name__ == "__main__":
