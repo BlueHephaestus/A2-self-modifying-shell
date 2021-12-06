@@ -14,31 +14,51 @@ This means that there is a highly limited size of it, since there can only be 25
     it can of course be easily extended i'm just doing it this way so i can view the entire network easily,
     and because rather than extending the range of each dimension i'll probably add dimensions instead. not sure.
 """
+"""
+OI FUTURE SELF
+
+i'm going to leave this here, we are modifying the network's non-neat components, since it offers a simple
+    and really extendable interface for us to build the hexnet's core out of - taking the inputs and thinking 
+    until produced outputs happen - we can also specify the selfmod functions here. 
+    
+SO THE CREATE() FUNCTION WILL BE AVOIDED FOR NOW
+
+
+"""
 from neat.graphs import required_for_output
 
 
 class HexNetwork(object):
-    def __init__(self, inputs, outputs, node_evals):
+
+    def __init__(self, inputs, outputs, mods, node_evals):
+        #TODO: add weight initialization
         self.input_nodes = inputs
         self.output_nodes = outputs
+        self.mod_nodes = mods
         self.node_evals = node_evals
+
 
         self.values = [{}, {}]
         for v in self.values:
-            for k in list(inputs) + list(outputs):
+            for k in list(inputs) + list(outputs) + list(mods):
                 v[k] = 0.0
 
             for node, ignored_activation, ignored_aggregation, ignored_bias, ignored_response, links in self.node_evals:
                 v[node] = 0.0
                 for i, w in links:
-                    v[i] = 0.0
+                    # changing this to be = w, not sure why it started as = 0.0
+                    v[i] = w
+
+
+
+        # state flag
         self.active = 0
 
     def reset(self):
         self.values = [dict((k, 0.0) for k in v) for v in self.values]
         self.active = 0
 
-    # TODO will need to add in timesteps for when it doesn't activate the potential of the outputs, and
+    # TODO need to add in timesteps for when it doesn't activate the potential of the outputs, and
     # therefore doesn't have new inputs and is still thinking until it produces an output.
     # meaning that this function will run UNTIL output
     def activate(self, inputs):
@@ -63,9 +83,12 @@ class HexNetwork(object):
 
         return [ovalues[i] for i in self.output_nodes]
 
+    # TODO AVOIDING THIS FOR NOW; WE WILL IMPLEMENT NEAT LATER - FOCUSING ON BASE DESIGN OF NETWORK FOR NOW
     @staticmethod
     def create(genome, config):
-        """ Receives a genome and returns its phenotype (a RecurrentNetwork). """
+        pass
+        """
+        # Receives a genome and returns its phenotype (a RecurrentNetwork). 
         genome_config = config.genome_config
         required = required_for_output(genome_config.input_keys, genome_config.output_keys, genome.connections)
 
@@ -92,3 +115,31 @@ class HexNetwork(object):
             node_evals.append((node_key, activation_function, aggregation_function, node.bias, node.response, inputs))
 
         return HexNetwork(genome_config.input_keys, genome_config.output_keys, node_evals)
+        """
+
+"""
+CODE FROM TEST-FEEDFORWARD THAT RUNS THE NETWORK
+    WE NEED TO MOD THIS FOR OUR CARTPOLE VERSION
+    AND MOD THE HEX CLASS FOR THIS CALLING FUNCTION
+"""
+net = neat.nn.FeedForwardNetwork.create(c, config)
+sim = CartPole()
+
+# Run the given simulation for up to 120 seconds.
+balance_time = 0.0
+while sim.t < 120.0:
+    inputs = sim.get_scaled_state()
+    action = net.activate(inputs)
+
+    # Apply action to the simulated cart-pole
+    force = discrete_actuator_force(action)
+    sim.step(force)
+
+    # Stop if the network fails to keep the cart within the position or angle limits.
+    # The per-run fitness is the number of time steps the network can balance the pole
+    # without exceeding these limits.
+    if abs(sim.x) >= sim.position_limit or abs(sim.theta) >= sim.angle_limit_radians:
+        break
+
+    balance_time = sim.t
+
