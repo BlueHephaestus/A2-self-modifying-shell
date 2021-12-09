@@ -1,12 +1,18 @@
 import gym
 import time
-env = gym.make('CartPole-v0')
-env.reset()
+from hex import HexNetwork
+
+sim = gym.make('CartPole-v0')
+net = HexNetwork(sim.action_space.n, sim.observation_space.shape[0])
+sim.reset()
+sim.render()
+# random action to get initial state values
+state, reward, done, info = sim.step(sim.action_space.sample())
+
 for _ in range(1000):
-    env.render()
-    state, reward, done, info = env.step(env.action_space.sample()) # take a random action
     print(state)
+    action = net.activate(state)
     if done:
         break
     time.sleep(.5)
-env.close()
+sim.close()
