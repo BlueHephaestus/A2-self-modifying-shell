@@ -3,6 +3,21 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+Keeping this as reference, because while this works very efficiently for drawing on intervals using the 
+    funcAnimation method of matplotlib, and implements blitting to only redraw the changed elements, so that
+    its more efficient - unfortunately it is blocking.
+    
+We want this to be a method that the network can call, in order to render it's current form, just like the network
+    backend can call the simulation renderer to view how it performs. 
+    
+With this implementation, that wouldn't work since this is blocking and is calling update every iteration - 
+    while we could call the network each iteration of update(), this wouldn't scale well since it would require
+    the network to be a subclass, encapsulated in the animator, and therefore require the animator wrapper.
+    
+And while the added efficiency is nice, our priority is network first, not animation first - we can deal with a little
+    slower animation times and just render it every 5th frame or whathaveyou.
+"""
 
 # USEFUL BITS OF CODE
 # self.G.add_edges_from(
