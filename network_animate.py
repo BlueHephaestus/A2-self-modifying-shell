@@ -43,42 +43,59 @@ class NetworkAnimator():
         #pos = {'A': (1, num), 'B': (3, 3), 'C': (1, 2), 'D': (5, 2), 'E': (6, 1), 'F': (9, 0), 'G': (3, 1), 'H': (4, 4)}
         #pos = {0:(1,1), 'A':(2,2)}
         pos = {node:node_i for node,node_i in zip(self.nodes, self.node_idxs)}
-        self.nptr = nx.draw_networkx_nodes(self.G, pos, cmap=plt.get_cmap('jet'), node_size=500, node_shape='s', ax=self.ax)
-        nx.draw_networkx_labels(self.G, pos, font_size=8)
+        #self.nptr = nx.draw_networkx_nodes(self.G, pos, cmap=plt.get_cmap('jet'), node_size=500, node_shape='s', ax=self.ax)
+        #nx.draw_networkx_labels(self.G, pos, font_size=8)
 
         # Update plot metadata
         #self.ax.set_title("Frame %d:    "%(num+1), fontweight="bold")
+        #self.ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+        self.ax.tick_params(left=True, top=True, labelleft=True, labeltop=True)
         self.ax.set_xticks(np.arange(n))
         self.ax.set_yticks(np.arange(n))
-        self.ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+        self.ax.set_xlim((-.5,n-.5))
+        self.ax.set_ylim((-.5,n-.5))
         self.ax.invert_yaxis()
         self.ax.xaxis.tick_top()
+        self.ax.xaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(n-1)+0.5))
+        self.ax.yaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(n-1)+0.5))
+        self.ax.grid(which='minor')
+        #self.ax.grid(xdata=np.arange(n//2),ydata=np.arange(n//2))
 
     def update(self, num):
         print("update")
-        self.node_idxs2 = [(i//n+num, i%n) for i in range(n)]
-        pos = {node:node_i for node,node_i in zip(self.nodes, self.node_idxs)}
+        self.node_idxs2 = [(i//n+num%32, i%n) for i in range(n)]
+        pos = {node:node_i for node,node_i in zip(self.nodes, self.node_idxs2)}
         if num == 10:
             self.G.add_node("A")
-        pos["A"] = (14, 14)
+        if num >= 10 and num < 20:
+            pos["A"] = (14, 14)
+
+        if num == 20:
+            self.G.remove_node("A")
+
+
+
         self.nptr = nx.draw_networkx_nodes(self.G, pos, cmap=plt.get_cmap('jet'), node_size=500, node_shape='s', ax=self.ax)
-        #self.G.
-        #self.nptr = nx.draw(self.G, pos=pos)
+
+        # Graph bookkeeping - keep it from breaking
+        self.ax.set_xlim((-.5,n-.5))
+        self.ax.set_ylim((n-.5,-.5))
         self.ax.set_xticks(np.arange(n))
         self.ax.set_yticks(np.arange(n))
         self.ax.tick_params(left=True, top=True, labelleft=True, labeltop=True)
         #self.ax.invert_yaxis()
         self.ax.xaxis.tick_top()
-        print(pos["A"])
+
+
         return self.nptr.findobj()
 
     def main(self):
         # Keeping blit as False, was working to make blit True work but it just is coming up to too much work for
         # what is ultimately a convenience feature for visualization. Don't need this to run that fast, maybe.
-        self.ani = matplotlib.animation.FuncAnimation(self.fig, self.update, frames=60, interval=100, repeat=True, blit=False)
+        self.ani = matplotlib.animation.FuncAnimation(self.fig, self.update, frames=60, interval=500, repeat=False, blit=True)
         plt.show()
 
 
-n = 32
+n = 16
 na = NetworkAnimator(n)
 na.main()
