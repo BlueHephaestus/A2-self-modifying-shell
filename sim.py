@@ -2,7 +2,7 @@ import gym
 import time
 from hex import HexNetwork
 
-sim = gym.make('CartPole-v0')
+sim = gym.make('CartPole-v1')
 net = HexNetwork(sim.action_space.n, sim.observation_space.shape[0])
 sim.reset()
 sim.render()
@@ -10,9 +10,11 @@ sim.render()
 state, reward, done, info = sim.step(sim.action_space.sample())
 
 for _ in range(1000):
-    print(state)
+    #print(state)
     action = net.activate(state)
+    sim.render()
+    sim.step(action)
     if done:
         break
-    time.sleep(.5)
+    time.sleep(.1)
 sim.close()
