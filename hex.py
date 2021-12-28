@@ -40,7 +40,6 @@ Underlying representation of RNNs in this system:
             only then does it care about grabbing and putting together all the inputs it has to it's module.
 """
 import numpy as np
-
 class Module():
     """
     Base Abstract class for all modules in our Hex structure.
@@ -54,6 +53,7 @@ class Module():
         :param location: Location of this module in the grid, via (row, col) coordinate.
         :param threshold: Threshold value for firing of this module. integer.
         """
+        self.i, self.j = location
         self.location = location
         self.threshold = threshold
         self.nodes = ""# TO BE OVERRIDDEN
@@ -77,13 +77,12 @@ class Module():
         pass
 
 
-
+# could use 1d -> 2d to do this more elegantly but it'd be just as verbose and harder to read
 class NodeModule(Module):
     def __init__(self, location, threshold):
         Module.__init__(self, location, threshold)
 
         # Nodes used in full grid (locations)
-        self.i, self.j = location
         self.nodes = [(self.i+i,self.j+j) for i in range(2) for j in range(4)]
         self.nodes.extend([(self.i+2, self.j), (self.i+2, self.j+1)])
 
@@ -92,7 +91,6 @@ class EdgeModule(Module):
         Module.__init__(self, location, threshold)
 
         # Nodes used in full grid (locations)
-        self.i, self.j = location
         self.nodes = [(self.i+i,self.j+j) for i in range(4) for j in range(4)]
         self.nodes.extend([(self.i+4, self.j), (self.i+4, self.j+1)])
 
@@ -101,7 +99,6 @@ class MemoryModule(Module):
         Module.__init__(self, location, threshold)
 
         # Nodes used in full grid (locations)
-        self.i, self.j = location
         self.nodes = [(self.i+i,self.j+j) for i in range(2) for j in range(4)]
         self.nodes.extend([(self.i+2, self.j), (self.i+2, self.j+1)])
 
@@ -110,29 +107,55 @@ class MetaModule(Module):
         Module.__init__(self, location, threshold)
 
         # Nodes used in full grid (locations)
-        self.i, self.j = location
         self.nodes = [(self.i+i,self.j+j) for i in range(3) for j in range(4)]
 
-class Grid(object):
-    def __init__(self, n):
-        self.n = n
-        self.grid = np.zeros((n, n), dtype=Node)
-        for i in self.n:
-            for j in self.n:
-                self.grid[i,j] = Node()
-
+# TODO set activation and response to suitable defaults since we aren't adding modifiers for these yet
 class Node(object):
     # inherently located at a cell in the grid
     def __init__(self):
         # Determines if this cell is empty or if this is an active node.
         self.exists = False
 
-        self.activation = None
+        self.activation = None # type - function
         self.bias = None
-        self.response = None#aka output function
-        self.connections = []
+        self.response = None# aka output function: type - function
+        self.edges = [] # list of form (idx, weight) for source node and weight from it
 
-# class MemoryNode(Module, Node)
+class ModuleNode(Node):
+    def __init__(self):
+        """
+        Placeholder node with varying purposes, for use with a module at this location.
+        """
+        Node.__init__(self)
+        self.exists = True
+
+class MemoryNode(Module, Node):
+    def __init__(self, location, threshold):
+        Module.__init__(self, location, threshold)
+        Node.__init__(self)
+
+        # Nodes used in full grid (locations, in this case only a pair)
+        self.nodes = [(self.i, self.j), (self.i, self.j+1)]
+
+# TODO we should probably make this class subscriptable
+class Grid(object):
+    def __init__(self, n):
+        self.n = n
+        self.grid = np.zeros((n, n), dtype=Node)
+        for i in range(self.n):
+            for j in range(self.n):
+                self.grid[i,j] = Node()
+
+    def add_module(self, module):
+        """
+        Traverse the given module's nodes, adding ModuleNode's to the grid
+            as placeholders where indicated.
+
+        :param module: Module to add
+        :return: None, grid is modified in place.
+        """
+        for node in module.nodes:
+            self.grid[node] = ModuleNode()
 
 """
 HexNetwork
@@ -159,23 +182,77 @@ HexNetwork
                     if output threshold exceeded
                         return output
             return output (regardless)
-            
-                
-
 """
+# Keep as module subclass for the required interface
+class Inputs(Module):
+    def __init__(self, location, input_n):
+        # Keeps in a 4x4 quadrant from initial location.
+        Module.__init__(self, location, None)
+        self.i, self.j = location
+        self.nodes = [(self.i+i//4,self.i+i%4) for i in range(input_n)]
+
+# Keep as module subclass for the required interface
+class Outputs(Module):
+    def __init__(self, location, output_n, threshold):
+        # Keeps in a 4x4 quadrant from initial location.
+        # Threshold node not included in number of outputs, is the last output node.
+        Module.__init__(self, location, threshold)
+        self.i, self.j = location
+        self.nodes = [(self.i+i//4,self.i+i%4) for i in range(output_n+1)]
+
 class HexNetwork(object):
 
     def __init__(self, grid_n):
+        # For now, not extending past cartpole.
 
+        self.net = [Grid(grid_n), Grid(grid_n)]
+        self.state = 0
+
+        # Init input and output modules
+        self.inputs = Inputs((0,0), 5)
+        self.outputs = Outputs((grid_n-4,grid_n-4), 2, threshold=1)
+
+        # Init base memory bank
+        self.memory_bank = [
+            MemoryNode((0, 12), threshold=0),
+            MemoryNode((0, 14), threshold=0),
+            MemoryNode((1, 12), threshold=0.5),
+            MemoryNode((1, 14), threshold=0.5),
+            MemoryNode((2, 12), threshold=1),
+            MemoryNode((2, 14), threshold=1),
+            MemoryNode((3, 12), threshold=2),
+            MemoryNode((3, 14), threshold=2),
+        ]
         # Init base modules
-        self.modules = []
+        self.modules = [
+            NodeModule((0,4), threshold=1),
+            EdgeModule((4,0), threshold=1),
+            MemoryModule((0,8), threshold=1),
+            MetaModule((12,0), threshold=2),
+        ]
+        # Add respective module nodes to grid
+        self.net[self.state].add_module(self.inputs)
+        self.net[self.state].add_module(self.outputs)
+        for mem_node in self.memory_bank:
+            self.net[self.state].add_module(mem_node)
+        for module in self.modules:
+            self.net[self.state].add_module(module)
 
-        # indices
-        self.input_idxs = np.diag_indices(input_n)
-        self.output_idxs = (0, range(1,output_n+1))
-
-        # where we would put our initial connections in the network
-        #self.connections = connections
+        """
+        So, RNG init.
+        Lotta RNG.
+        
+        We RNG the core, with Node objects.
+        Then, with the core nodes, we RNG connections to all other nodes in hex.
+        These connections are RNG'd after the core for both simplicity and modularity.
+        We call them secondary edges.
+        We generate a large list of all valid secondary edges:
+            input -> core
+            core -> output
+            core -> modules
+            core <-> memory nodes
+        And then select a random number of them to become secondary edges.
+        """
 
         # curr, next - only needed for nodes only
         # guess this means we should add those nodes when we add the modules?
@@ -190,22 +267,7 @@ class HexNetwork(object):
         So we start on the first state, and can just initialize that one with all our weights,
             and set the second state to be empty since it will be filled when we propagate.
         """
-        self.net = [Grid(grid_n), Grid(grid_n)]
-        self.state = 0
         # NOTE ignoring initialization of state 'next' since it gets overwritten by curr propagation
-
-        # given we have hexnet, we no longer have node keys as indices infinitely
-        # they are just their location in the hex grid.
-        # see this is why i love it
-        # simple matrices, bouis
-
-        """
-        # realized this is unnecessary since we literally initialize the entire thing to zeros
-        for state in self.net:
-            self.net[state][self.input_i] = 0.0
-            self.net[state][self.mod_i] = 0.0
-            self.net[state][self.output_i] = 0.0
-        """
 
         # initialize initial connections and random weights
         # inputs -> mods, inputs -> outputs. two separate copies sent to mods and outputs
@@ -230,6 +292,8 @@ class HexNetwork(object):
 
     # REMEMBER that the only nodes with outputs are normal nodes, and we don't have to handle
     # the cases where there are modules here.
+
+    # REMEMBER that connections is what we were calling node evals. But I like our new form better.
     def activate(self, inputs, think_t):
         """
         activate(inputs, think_t) - the main loop that occurs for every input to produce output
@@ -259,7 +323,7 @@ class HexNetwork(object):
                     curr[i] = v
 
             # activate_nodes and propagate into next state
-            for node, activation, aggregation, bias, response, links in self.connections:
+            for (node, activation, aggregation, bias, response), links in self.connections:
                 node_inputs = [curr[i] * w for i, w in links]
                 s = aggregation(node_inputs)
                 next[node] = activation(bias + response * s)
@@ -274,6 +338,11 @@ class HexNetwork(object):
             # return output
 
             #return [next[i] for i in self.output_nodes]
+
+hex = HexNetwork(16)
+g = hex.net[hex.state].grid
+for i in range(16):
+    print(i, g[i])
 
 """
 CODE FROM TEST-FEEDFORWARD THAT RUNS THE NETWORK
