@@ -46,7 +46,7 @@ def rng_rnn(n):
     node_labels = [f"{i},{j}" for i,j in node_idxs]
 
     # pos takes x,y not row,col so we invert with [::-1]
-    node_pos = {node_label:node_idx[::-1] for node_label,node_idx in zip(node_labels,node_idxs)}
+    #node_pos = {node_label:node_idx[::-1] for node_label,node_idx in zip(node_labels,node_idxs)}
     rnn.add_nodes_from(node_labels)
 
     ### EDGES ###

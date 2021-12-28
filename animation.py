@@ -74,7 +74,8 @@ class NetworkAnimator():
         :param net:
         :return: Renders network as new animated frame.
         """
-        label2coord = lambda label: tuple(map(int, label.split(",")))
+        # Reversed b/c row,col -> x, y
+        label2coord = lambda label: tuple(map(int, reversed(label.split(","))))
         pos = {node:label2coord(node) for node in net.nodes()}
 
         self.ax.clear()
