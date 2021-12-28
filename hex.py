@@ -25,12 +25,109 @@ SO THE CREATE() FUNCTION WILL BE AVOIDED FOR NOW
 
 
 """
-from neat.graphs import required_for_output
+"""
+Underlying representation of RNNs in this system:
+    Can be whatever, so long as we can convert it to NetworkX structure, since that is what we use to render.
+    And since we are having to do a lil bit of a hacky thing to use NetworkX with our rendering, via naming each
+        node as it's position in the grid, 
+    I'm going to instead opt for making this a different more efficient representation, with a converter that can
+        create a human-viewable networkx graph of it when rendering.
+    We'll still use an NxN grid for all of this
+    However we'll have a LOT of different types of given nodes in that grid.
+    Not sure yet how we should do the node vs. module distinction, since multiple nodes make up a module. 
+        We could always do our quadrant idea - no, this wouldn't work for when it creates its own.
+        If it creates a new module in an area, that will only work if there is room. 
+            It will try and create it with the given address being the top-left corner of the module.
+                (yes, this means each module should have a spec saying what it's surface area is, so we can eval
+                if a new addition will work)
+        So nodes should obviously be related to modules that they are under.
+        This highly relates to when we check for if a module is triggered.
+            REMEMBER that modules only get triggered when their threshold is exceeded
+        After we run propagate(), we check each module. This would involve looping through a list of existing
+            modules in the grid, and checking their object to see if the threshold has been exceeded, and if it has,
+            only then does it care about grabbing and putting together all the inputs it has to it's module.
+"""
 import numpy as np
 
-# imma deconstruct this bitch like marion wheeler deconstructed 3125
-MOD_NODES = 7
-NET_SIZE = 16
+class Module():
+    """
+    Base Abstract class for all modules in our Hex structure.
+    Any given new module types must follow this layout.
+    """
+    def __init__(self, location: (int,int), threshold: int):
+        """
+        Creates new module, with common attributes.
+        Nodes used in full grid is hardcoded for each module.
+
+        :param location: Location of this module in the grid, via (row, col) coordinate.
+        :param threshold: Threshold value for firing of this module. integer.
+        """
+        self.location = location
+        self.threshold = threshold
+        self.nodes = ""# TO BE OVERRIDDEN
+
+    def is_valid_activation(self):
+        """
+        If the module, at this timestep, has met all criteria for a valid activation.
+
+        These are usually:
+            if threshold value > threshold
+            if address and required node(s) are all in a valid empty space
+            if options are valid and in range.
+        """
+        pass
+
+    def activate(self):
+        """
+        Assuming is_valid_activation == True, perform this module's function.
+            This may be adding, editing, or deleting given on the inputs it receives.
+        """
+        pass
+
+
+
+class NodeModule(Module):
+    def __init__(self, location, threshold):
+        Module.__init__(self, location, threshold)
+
+        # Nodes used in full grid (locations)
+        self.i, self.j = location
+        self.nodes = [(self.i+i,self.j+j) for i in range(2) for j in range(4)]
+        self.nodes.extend([(self.i+2, self.j), (self.i+2, self.j+1)])
+
+class EdgeModule(Module):
+    def __init__(self, location, threshold):
+        Module.__init__(self, location, threshold)
+
+        # Nodes used in full grid (locations)
+        self.i, self.j = location
+        self.nodes = [(self.i+i,self.j+j) for i in range(4) for j in range(4)]
+        self.nodes.extend([(self.i+4, self.j), (self.i+4, self.j+1)])
+
+class MemoryModule(Module):
+    def __init__(self, location, threshold):
+        Module.__init__(self, location, threshold)
+
+        # Nodes used in full grid (locations)
+        self.i, self.j = location
+        self.nodes = [(self.i+i,self.j+j) for i in range(2) for j in range(4)]
+        self.nodes.extend([(self.i+2, self.j), (self.i+2, self.j+1)])
+
+class MetaModule(Module):
+    def __init__(self, location, threshold):
+        Module.__init__(self, location, threshold)
+
+        # Nodes used in full grid (locations)
+        self.i, self.j = location
+        self.nodes = [(self.i+i,self.j+j) for i in range(3) for j in range(4)]
+
+class Grid(object):
+    def __init__(self, n):
+        self.n = n
+        self.grid = np.zeros((n, n), dtype=Node)
+        for i in self.n:
+            for j in self.n:
+                self.grid[i,j] = Node()
 
 
 class HexGrid(object):
