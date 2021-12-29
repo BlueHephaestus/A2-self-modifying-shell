@@ -77,7 +77,7 @@ def rng_rnn(n):
 
     return rnn
 
-def rng_hex_core(grid):
+def rng_hex_core(grid, core):
     """
     RNG initialize a core for the hex network.
         Given the grid
@@ -92,7 +92,8 @@ def rng_hex_core(grid):
 
     :param grid: Initialized Base Hex Grid, with modules but without connections or core.
         Shape is N x N
-    :return: None, modifies the grid in place to add a core.
+    :param core: List to add new core node idxs to.
+    :return: None, modifies the grid in place to add a core, and same for core list.
     """
     grid_n = grid.shape[0]
     # Get core quadrilateral inside of grid
@@ -113,6 +114,7 @@ def rng_hex_core(grid):
     # Add all nodes to grid (via setting exists=True)
     # And initialize biases.
     for node in node_idxs:
+        core.append(node)
         grid[node].exists = True
         grid[node].bias = rng_bias()
 
@@ -132,9 +134,10 @@ def rng_hex_core(grid):
 
         # Add weighted edge (our RNG guarantees this node is already initialized btw)
         # Reminder that edges are of the form (idx, weight) where idx = (i,j) & weight = float
-        grid[dst].edges.append((src, rng_weight()))
+        grid[dst].in_edges.append((src, rng_weight()))
+        grid[src].out_edges.append(dst)
 
-def rng_hex_connect_core(grid, inputs, outputs, memory_bank, modules):
+def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
     """
     RNG initialize connections with the core for the hex network.
         Given the grid, WITH inputs, outputs, memory bank, and modules initialized inside it,
@@ -146,9 +149,10 @@ def rng_hex_connect_core(grid, inputs, outputs, memory_bank, modules):
 
     :param grid: Initialized Base Hex Grid WITH Core, but without connections outside of core.
         Shape is N x N
+    :param core: List of core node idxs.
     :param inputs: Module subclass denoting input locations and nodes.
     :param outputs: Module subclass denoting output locations and nodes.
-    :param memory_bank: List of MemoryNode objects denoting initial Hex Memory bank.
+    :param memory: List of MemoryNode objects denoting initial Hex Memory bank.
     :param modules: List of Module subclasses denoting various Hex Self-Modification Modules.
     :return: None, modifies the grid in place to connect the core.
     """
@@ -157,19 +161,50 @@ def rng_hex_connect_core(grid, inputs, outputs, memory_bank, modules):
     #     input -> core
     #     core -> output
     #     core -> modules
-    #     core <-> memory nodes
+    #     core -> memory nodes
+    #     memory nodes (values only) -> core
     # And then select a random number of them from the large list to become secondary edges.
 
-    # OI FUTURE SELF
-    # This is where we left off, were about to compute num of edges and make a list of them
-    # just like earlier, where we have them as (src,dst), aka ((src_i,src_j),(dst_i,dst_j))
-    # I'm thinking it could be v helpful to override len() on the Module class,
-    # so that we could just do len() to get the num of all nodes for any given module.
-    # Also we really are gonna need some tests at some point.
-    # Recall the way we code we can do that very easily. Consider looking into libraries that
-    # make it trivial, and build it into the docstrings?
+    # Just like earlier, we have each edge as (src,dst), aka ((src_i,src_j),(dst_i,dst_j))
+    possible_edges = []
 
-    # Otherwise this is going well, we're getting close!
+    # input -> core
+    for src in inputs:
+        for dst in core:
+            possible_edges.append((src,dst))
 
+    # core -> output
+    for src in core:
+        for dst in outputs:
+            possible_edges.append((src,dst))
 
-    pass
+    # core -> modules
+    for src in core:
+        for module in modules:
+            for dst in module:
+                possible_edges.append((src, dst))
+
+    # core -> memory nodes
+    for src in core:
+        for memory_node in memory:
+            for dst in memory_node:
+                possible_edges.append((src, dst))
+
+    # TODO improve this interface
+    # memory nodes (values only) -> core
+    for memory_node in memory:
+        src = memory_node[1] # value only
+        for dst in core:
+            possible_edges.append((src, dst))
+
+    # Now we have a big list of all possible edges, choose random number of edges to use.
+    edges_n = rng_int(len(possible_edges))
+
+    # Choose edges_n edges from list randomly (without repeating).
+    edges = rng.choice(possible_edges, size=edges_n, replace=False)
+
+    # Implement these edges in our grid with rng weights
+    for edge in edges:
+        src,dst = edge
+        grid[dst].in_edges.append((src, rng_weight()))
+        grid[src].out_edges.append(dst)
