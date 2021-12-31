@@ -109,5 +109,3 @@ if __name__ == "__main__":
         plt.pause(1)
 
     plt.show()
-
-# trying to fix the commit author thing
