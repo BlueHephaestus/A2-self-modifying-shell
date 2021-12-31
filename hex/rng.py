@@ -1,13 +1,16 @@
 import networkx as nx
 import numpy as np
 from numpy.random import default_rng
+
 rng = default_rng()
+
 
 def rng_int(n):
     """
     Generate random int from 0->n, inclusive
     """
-    return rng.integers(n+1)
+    return rng.integers(n + 1)
+
 
 def rng_bias():
     """
@@ -17,6 +20,7 @@ def rng_bias():
     """
     return rng.normal()
 
+
 def rng_weight():
     """
     Function for RNG init of weights in connections.
@@ -25,7 +29,8 @@ def rng_weight():
     """
     return rng.normal()
 
-def rng_2d_coord_choice(w,h,n):
+
+def rng_2d_coord_choice(w, h, n):
     """
     :param w: width of 2d matrix
     :param h: height of 2d matrix
@@ -33,9 +38,10 @@ def rng_2d_coord_choice(w,h,n):
     :return: Uniformly distributed coordinates across 2d matrix, without repetition/replacement
         Shape will be (n,2) s.t. each entry is a 2d coordinate pair, row-col
     """
-    coords_1d = rng.choice(w*h, size=n, replace=False)
-    coords_2d = np.column_stack((coords_1d//w,coords_1d%w))
+    coords_1d = rng.choice(w * h, size=n, replace=False)
+    coords_2d = np.column_stack((coords_1d // w, coords_1d % w))
     return coords_2d
+
 
 def rng_rnn(n):
     """
@@ -58,17 +64,17 @@ def rng_rnn(n):
 
     # to get the node coordinates - we use their coordinates as their label, btw
     # Get node coordinates in square bounds
-    node_idxs = rng_2d_coord_choice(n,n,nodes_n)
-    node_labels = [f"{i},{j}" for i,j in node_idxs]
+    node_idxs = rng_2d_coord_choice(n, n, nodes_n)
+    node_labels = [f"{i},{j}" for i, j in node_idxs]
 
     # pos takes x,y not row,col so we invert with [::-1]
-    #node_pos = {node_label:node_idx[::-1] for node_label,node_idx in zip(node_labels,node_idxs)}
+    # node_pos = {node_label:node_idx[::-1] for node_label,node_idx in zip(node_labels,node_idxs)}
     rnn.add_nodes_from(node_labels)
 
     ### EDGES ###
     # Get edge indices in node *ADJACENCY MATRIX*, not the square bounds this rnn exists in.
     # s.t. indices correspond to nodes in the nodes array.
-    edge_idxs = rng_2d_coord_choice(nodes_n,nodes_n,edges_n)
+    edge_idxs = rng_2d_coord_choice(nodes_n, nodes_n, edges_n)
 
     # Get node labels from adjacency matrix indices to form full edge labels
     # reminder that an edge label is the form ("<src node label>", "<dst node label>")
@@ -76,6 +82,7 @@ def rng_rnn(n):
     rnn.add_edges_from(edge_labels)
 
     return rnn
+
 
 def rng_hex_core(grid, core):
     """
@@ -97,12 +104,12 @@ def rng_hex_core(grid, core):
     """
     grid_n = len(grid)
     # Get core quadrilateral inside of grid
-    core_h = grid_n-4
-    core_w = grid_n-4
+    core_h = grid_n - 4
+    core_w = grid_n - 4
     core_i = 4
     core_j = 4
-    nodes_n = rng_int(core_h*core_w)
-    edges_n = rng_int(nodes_n**2)
+    nodes_n = rng_int(core_h * core_w)
+    edges_n = rng_int(nodes_n ** 2)
 
     ### NODES ###
     # Get node coordinates in square bounds
@@ -122,7 +129,7 @@ def rng_hex_core(grid, core):
     # Get edge indices in node *ADJACENCY MATRIX*, not the square bounds this rnn exists in.
     # s.t. indices correspond to nodes in the nodes array.
     # This also means we don't have to scale according to core bounds.
-    edge_idxs = rng_2d_coord_choice(nodes_n,nodes_n,edges_n)
+    edge_idxs = rng_2d_coord_choice(nodes_n, nodes_n, edges_n)
 
     # Add all edges to nodes in grid (via edges attribute)
     # And initialize weights.
@@ -136,6 +143,7 @@ def rng_hex_core(grid, core):
         # Reminder that edges are of the form (idx, weight) where idx = (i,j) & weight = float
         grid[dst].in_edges.append((src, rng_weight()))
         grid[src].out_edges.append(dst)
+
 
 def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
     """
@@ -171,12 +179,12 @@ def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
     # input -> core
     for src in inputs:
         for dst in core:
-            possible_edges.append((src,dst))
+            possible_edges.append((src, dst))
 
     # core -> output
     for src in core:
         for dst in outputs:
-            possible_edges.append((src,dst))
+            possible_edges.append((src, dst))
 
     # core -> modules
     for src in core:
@@ -193,7 +201,7 @@ def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
     # TODO improve this interface
     # memory nodes (values only) -> core
     for memory_node in memory:
-        src = memory_node[1] # value only
+        src = memory_node[1]  # value only
         for dst in core:
             possible_edges.append((src, dst))
 
@@ -205,6 +213,6 @@ def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
 
     # Implement these edges in our grid with rng weights
     for edge in edges:
-        src,dst = edge
+        src, dst = edge
         grid[dst].in_edges.append((src, rng_weight()))
         grid[src].out_edges.append(dst)

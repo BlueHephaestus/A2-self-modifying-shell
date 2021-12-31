@@ -1,5 +1,5 @@
-from hex.nodes import Node
 from hex.modules.module import Module
+from hex.nodes import Node
 
 
 class MemoryNode(Module, Node):

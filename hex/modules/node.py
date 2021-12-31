@@ -1,5 +1,5 @@
-from hex.nodes import Node, ModuleNode
 from hex.modules.module import Module
+from hex.nodes import Node, ModuleNode
 
 
 # could use 1d -> 2d to do this more elegantly but it'd be just as verbose and harder to read

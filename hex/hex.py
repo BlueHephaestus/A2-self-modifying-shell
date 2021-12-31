@@ -56,6 +56,8 @@ HexNetwork
                     return output
         return output (regardless)
 """
+
+
 class HexNetwork:
 
     def __init__(self, grid_n):
