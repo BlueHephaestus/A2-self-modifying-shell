@@ -7,17 +7,6 @@ This means that there is a highly limited size of it, since there can only be 25
     and because rather than extending the range of each dimension i'll probably add dimensions instead. not sure.
 """
 """
-OI FUTURE SELF
-
-i'm going to leave this here, we are modifying the network's non-neat components, since it offers a simple
-    and really extendable interface for us to build the hexnet's core out of - taking the inputs and thinking 
-    until produced outputs happen - we can also specify the selfmod functions here. 
-    
-SO THE CREATE() FUNCTION WILL BE AVOIDED FOR NOW
-
-
-"""
-"""
 Underlying representation of RNNs in this system:
     Can be whatever, so long as we can convert it to NetworkX structure, since that is what we use to render.
     And since we are having to do a lil bit of a hacky thing to use NetworkX with our rendering, via naming each
@@ -438,8 +427,147 @@ class MetaModule(Module):
         # Nodes used in full grid (locations)
         self.nodes = [(self.i+i,self.j+j) for i in range(3) for j in range(4)]
 
-        # Ah fuck here we go
-        # this fuckin guy
+        self.epsilon = -1 # if value_node is less than this, delete the given module.
+        self.addr_nodes = self.nodes[:8]
+        self.threshold_node = self.nodes[-4]
+        self.module_type_nodes = self.nodes[-3:-1]
+        self.value_node = self.nodes[-1]
+
+        # Index == key, maps the binary num indicated by module type nodes to the type of
+        # module this will be editing. Same logic for numerical parsing as addresses.
+        # e.g. node vals of [-3.43, 1.21] -> [0, 1] -> 01 -> 1 -> map[1] -> EdgeModule.
+        self.module_type_mapping = [NodeModule, EdgeModule, MemoryModule, MetaModule]
+
+    @staticmethod
+    def get_module_type(grid, type_nodes, type_mapping):
+
+        """
+        Given a grid and the nodes on it which contain a raw module type input for
+            fully indicating one of four modules for this metamodule to reference,
+
+            Convert to binary: <=0 is 0, >0 is 1
+            Convert to decimal
+            Use as index mapping to get module type
+        # e.g. node vals of [-3.43, 1.21] -> [0, 1] -> 01 -> 1 -> map[1] -> EdgeModule.
+
+        :param grid: Usual grid at this timestep with addr values.
+        :param type_nodes: Type nodes with values indicating which module to use.
+        :param type_mapping: Mapping of value -> Module subclass
+        :return: one of the given modules in the mapping, a subclass of Module.
+        """
+        module_type = ""
+        for node in type_nodes:
+            type_val = grid[node].input
+            module_type += "0" if type_val <= 0 else "1"
+        return type_mapping[int(module_type, 2)]
+
+    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+        """
+        Determine if this is a valid activation for our Meta Module
+        This occurs if all of the following are true:
+            Threshold nodes exceeded
+            Address evaluates to valid address, with either
+                existing module or
+                enough room for new module
+                    New module determined by type node input.
+
+        Recall that although many activations may be valid, they may do different things
+            depending on the values given.
+
+        Also note that this is the most powerful module, and subsequently has very stringent
+            conditions for working - it's meant to be "with great power comes great responsibility"
+        """
+
+        # If not exceeded, we don't do anything
+        if grid[self.threshold_node].input <= self.threshold:
+            return False
+
+        self.addr = self.get_address(grid, self.addr_nodes)
+        self.module_type = self.get_module_type(grid, self.module_type_nodes, self.module_type_mapping)
+
+        ###
+        # We always care about both address and module type.
+        # If we are adding, we need enough room for the given module type
+        # If we are editing, it has to match the given module type
+        # If we are deleting, it has to match the given module type
+
+        # Determine if we already have a matching module here
+        self.module_exists = False
+        self.module_i = -1
+        for module_i, module in enumerate(modules):
+            if module[0] == self.addr:
+                # If it matches we're good
+                if isinstance(module, self.module_type):
+                    self.module_exists = True
+                    self.module_i = module_i
+                    break
+                # If it doesn't then this isn't valid and we do nothing
+                else:
+                    return False
+
+        # If we don't, determine if we have enough room for a new one of our given type
+        # Via if any of the needed nodes are already in use.
+        # I'm really glad I made these all subclasses of Module now, and i'm really glad
+        # that i have a separate method to actually add an instantiated module.
+        if not self.module_exists:
+            module = self.module_type(self.addr, -1) # get node positions via dummy module
+            for node in module.nodes:
+                if grid[node].exists:
+                    return False
+
+
+        # Otherwise either a matching module already exists or we have room for it,
+        # proceed with activation.
+        return True
+
+    def activate(self, grid, core, inputs, outputs, memory, modules):
+        """
+        Execute activation for MetaModule.
+        This will perform the following based on the value in value_node:
+            Value is less than `epsilon`: Delete the module at address, if one exists.
+                This will prune any connections to and from ALL of this module's nodes, as well.
+                This is why we keep track of edges going both ways for a given node.
+                If empty area, we do nothing.
+
+            If Value is within commit range (greater than `epsilon`):
+                (we already know it must match the module type)
+                Address points to an empty area: Create a new module at address, w/ given value
+                    as the new threshold.
+                    No connections, nothing else.
+                Address points to an existing module: Update threshold value to match given value.
+        """
+        value = grid[self.value_node]
+
+        # Delete if any module exists, otherwise leave empty.
+        if value < self.epsilon and self.module_exists:
+            # Remove all edges and references to all nodes in module.
+            # Modules can only have inputs, for all their nodes.
+            # src (out_edges) -> node (in edges)
+            module = modules[self.module_i]
+
+            # Iteratively remove each node.
+            for node in module.nodes:
+                # Remove all outgoing connections to these nodes.
+                for in_node,_weight in grid[node].in_edges:
+                    # Remove references from any incoming nodes' out_edges lists.
+                    grid[in_node].out_edges.remove(node)
+
+                # Remove the node
+                grid[node] = Node()
+
+            # Finally remove the module.
+            del modules[self.module_i]
+
+        # Non-delete cases - edit existing or add new if empty
+        else:
+            if not self.module_exists:
+                # Add
+                module = self.module_type(self.addr, threshold=value)
+                modules.append(module)
+                grid.add_module(module)
+            else:
+                # Edit threshold (it's already in grid and modules)
+                modules[self.module_i].threshold = value
 
 class Node(object):
     # inherently located at a cell in the grid
@@ -712,7 +840,7 @@ class HexNetwork(object):
                 # Logic for thresholds, addresses, etc. is left up to module.
                 if module.is_valid_activation(next, self.core, self.inputs, self.outputs, self.memory, self.modules):
                     # If so, we do it and update the grid.
-                    module.activate(next, self.core, )
+                    module.activate(next, self.core, self.inputs, self.outputs, self.memory, self.modules)
 
             ### OUTPUT NODES ###
             # Compute all outputs, again without activations and biases. Will check threshold
@@ -733,7 +861,9 @@ class HexNetwork(object):
         # Thinking loop end, take what has been output so far.
         return [next[node].output for node in self.outputs[:-1]]
 
+# time to improve rendering so we can check this bad boy out
 hex = HexNetwork(16)
+hex.render()
 g = hex.net[hex.state].grid
 for i in range(16):
     print(i, g[i])
