@@ -1,6 +1,6 @@
 import gym
 import time
-from hex import HexNetwork
+from hex.hex import HexNetwork
 
 # TODO maybe make these encapsulated into an abstract base class so we can more readily throw nets at large amts of sims
 sim = gym.make('CartPole-v1')

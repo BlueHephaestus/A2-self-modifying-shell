@@ -2,7 +2,6 @@ import matplotlib.animation
 import networkx as nx
 import matplotlib.pyplot as plt
 from matplotlib import cm
-import numpy as np
 from rng import rng_rnn
 from hex import *
 
@@ -114,7 +113,6 @@ class NetworkRenderer():
         pos = {node:label2coord(node) for node in net.nodes()}
 
         self.ax.clear()
-        from rng import rng_int
         nx.draw_networkx_nodes(net, pos, cmap=cmap, node_color=node_color, node_size=150, node_shape='s', ax=self.ax)
         nx.draw_networkx_labels(net, pos, font_size=6, ax=self.ax)
         nx.draw_networkx_edges(net, pos, ax=self.ax)
