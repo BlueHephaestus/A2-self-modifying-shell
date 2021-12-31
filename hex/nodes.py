@@ -1,3 +1,7 @@
+"""
+Base file for all node definitions. If this extends further, will separate into a directory, like with modules.
+    This is one of our highest level classes, since nodes make up modules.
+"""
 import numpy as np
 
 

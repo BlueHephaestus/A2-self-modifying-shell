@@ -12,6 +12,7 @@ from hex.modules.io import Inputs, Outputs
 from hex.modules.memory import MemoryNode, MemoryModule
 from hex.modules.meta import MetaModule
 from hex.modules.node import NodeModule
+from rng import rng_hex_core, rng_hex_connect_core
 
 """
 Underlying representation of RNNs in this system:
@@ -36,7 +37,6 @@ Underlying representation of RNNs in this system:
             only then does it care about grabbing and putting together all the inputs it has to it's module.
 """
 
-from rng import rng_hex_core, rng_hex_connect_core
 
 """
 HexNetwork
@@ -134,8 +134,9 @@ class HexNetwork:
                     if output threshold exceeded
                         return output
             return output (regardless)
-        :param inputs: Input state of the simulation
+        :param input_values:
         :param think_t: Timesteps allowed for thinking loop.
+            Must be AT LEAST 1 or this will not be able to produce any outputs.
         :return: outputs, regardless of if obtained via threshold or think_t reached.
         """
         for think_i in range(think_t):

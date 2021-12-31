@@ -1,6 +1,7 @@
 import matplotlib.animation
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 from matplotlib import cm
 
 from hex import *
@@ -14,7 +15,7 @@ As input, takes data about how large the network will be.
 """
 
 
-class NetworkRenderer():
+class NetworkRenderer:
     def __init__(self, n):
         """
         Animation engine for network structure.
@@ -80,7 +81,7 @@ class NetworkRenderer():
         Mainly, this converts hex into a networkx network, with values for nodes explicitly
             to color-code them, not to convey the actual values of nodes and edges.
 
-        :param net: Hex network.
+        :param hex:
         :return: Renders network as new animated frame.
         """
         coord2label = lambda coord: f"{coord[0]},{coord[1]}"
@@ -111,6 +112,8 @@ class NetworkRenderer():
         Given network, update current rendering to match it.
             positions of nodes determined by their label, since we label via "row, col" coordinate
 
+        :param node_color:
+        :param cmap:
         :param net:
         :return: Renders network as new animated frame.
         """

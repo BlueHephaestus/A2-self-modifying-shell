@@ -1,4 +1,4 @@
-class Module():
+class Module:
     """
     Base Abstract class for all modules in our Hex structure.
     Any given new module types must follow this layout.
@@ -35,7 +35,8 @@ class Module():
         else:
             raise StopIteration
 
-    def get_address(self, grid, addr_nodes):
+    @staticmethod
+    def get_address(grid, addr_nodes):
         """
         Given a grid and the nodes on it which contain a raw address input for fully indicating
             another node in the grid:
@@ -60,7 +61,7 @@ class Module():
         for node in addr_nodes:
             addr_val = grid[node].input
             addrs += "0" if addr_val <= 0 else "1"
-        return (int(addrs[:n], 2), int(addrs[n:], 2))
+        return int(addrs[:n], 2), int(addrs[n:], 2)
 
     def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
         """

@@ -38,7 +38,7 @@ class NodeModule(Module):
         # to only be writable via accessing the memory and exceeding that threshold.
         self.addr = self.get_address(grid, self.addr_nodes)
         node = grid[self.addr]
-        if isinstance(node == ModuleNode):
+        if isinstance(node, ModuleNode):
             return False
 
         # Otherwise this is valid, proceed with activation
