@@ -95,7 +95,7 @@ def rng_hex_core(grid, core):
     :param core: List to add new core node idxs to.
     :return: None, modifies the grid in place to add a core, and same for core list.
     """
-    grid_n = grid.shape[0]
+    grid_n = len(grid)
     # Get core quadrilateral inside of grid
     core_h = grid_n-4
     core_w = grid_n-4

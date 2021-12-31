@@ -60,8 +60,8 @@ class Module():
         return self
 
     def __next__(self):
-        if self.node_i < len(self):
-            res = self[self.node_i]
+        if self.iter_i < len(self):
+            res = self[self.iter_i]
             self.iter_i += 1
             return res
         else:
@@ -644,8 +644,12 @@ class Grid(object):
             for j in range(self.n):
                 self.grid[i,j] = Node()
 
+    def __len__(self):
+        return self.n
+
     def __getitem__(self, i):
-        return self.grid[i]
+        #return self.grid[i]
+        return self.grid[tuple(i)]
 
     def add_module(self, module):
         """
