@@ -1,8 +1,10 @@
 import matplotlib.animation
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib import cm
 import numpy as np
 from rng import rng_rnn
+from hex import *
 
 """
 Class to handle animations and rendering of networks, so that at any point it can be updated to view the evolving
@@ -10,7 +12,7 @@ network.
 
 As input, takes data about how large the network will be. 
 """
-class NetworkAnimator():
+class NetworkRenderer():
     def __init__(self, n):
         """
         Animation engine for network structure.
@@ -66,7 +68,40 @@ class NetworkAnimator():
 
         return nx.relabel.relabel_nodes(net, mapping)
 
-    def render_net(self, net):
+    def render_hex_network(self, hex):
+        """
+        Given hex network, update current rendering to match it.
+
+        This calls render_net, but only after considerable parsing and converting of the given
+            network structure into something representative.
+
+        Mainly, this converts hex into a networkx network, with values for nodes explicitly
+            to color-code them, not to convey the actual values of nodes and edges.
+
+        :param net: Hex network.
+        :return: Renders network as new animated frame.
+        """
+        coord2label = lambda coord: f"{coord[0]},{coord[1]}"
+        cmap = cm.get_cmap('hsv', 10)
+        net = nx.DiGraph()
+        colors = []
+        a = ["red","orange","yellow","green","blue", "purple","pink","black","white"]
+
+        # Iteratively go through and add, coloring each
+        for m in hex.modules:
+            node_labels = [coord2label(node) for node in m.nodes]
+            net.add_nodes_from(node_labels)
+
+            if isinstance(m, NodeModule): colors.extend([a[0]]*len(m))
+            elif isinstance(m, EdgeModule): colors.extend([a[1]]*len(m))
+            elif isinstance(m, MemoryModule): colors.extend([a[2]]*len(m))
+            elif isinstance(m, MetaModule): colors.extend([a[3]]*len(m))
+            else: colors.extend([a[4]] * len(m))
+        self.render_net(net, node_color=colors, cmap=cmap)
+
+
+
+    def render_net(self, net, node_color="#1f78b4", cmap=plt.get_cmap('jet')):
         """
         Given network, update current rendering to match it.
             positions of nodes determined by their label, since we label via "row, col" coordinate
@@ -79,7 +114,8 @@ class NetworkAnimator():
         pos = {node:label2coord(node) for node in net.nodes()}
 
         self.ax.clear()
-        nx.draw_networkx_nodes(net, pos, cmap=plt.get_cmap('jet'), node_size=150, node_shape='s', ax=self.ax)
+        from rng import rng_int
+        nx.draw_networkx_nodes(net, pos, cmap=cmap, node_color=node_color, node_size=150, node_shape='s', ax=self.ax)
         nx.draw_networkx_labels(net, pos, font_size=6, ax=self.ax)
         nx.draw_networkx_edges(net, pos, ax=self.ax)
 
@@ -102,10 +138,12 @@ class NetworkAnimator():
 if __name__ == "__main__":
     # Randomly gen RNNs and render at each second forever
     n = 16
-    na = NetworkAnimator(n)
+    na = NetworkRenderer(n)
     while True:
         net = rng_rnn(n)
-        na.render_net(net)
-        plt.pause(1)
+        net = HexNetwork(16)
+        na.render_hex_network(net)
+        #na.render_net(net, cmap=cm.get_cmap('hsv', 10))
+        plt.pause(1000000)
 
     plt.show()

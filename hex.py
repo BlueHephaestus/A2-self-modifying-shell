@@ -30,6 +30,7 @@ Underlying representation of RNNs in this system:
 """
 import numpy as np
 from rng import rng_hex_core, rng_hex_connect_core
+
 class Module():
     """
     Base Abstract class for all modules in our Hex structure.
@@ -635,7 +636,6 @@ class MemoryNode(Module, Node):
         # Nodes used in full grid (locations, in this case only a pair)
         self.nodes = [(self.i, self.j), (self.i, self.j+1)]
 
-# TODO we should probably make this class subscriptable
 class Grid(object):
     def __init__(self, n):
         self.n = n
@@ -701,6 +701,7 @@ class HexNetwork(object):
         self.net = [Grid(grid_n), Grid(grid_n)]
         self.state = 0
         self.core = [] # keeps track of non-special nodes for propagation
+        #self.renderer = NetworkRenderer(grid_n)
 
         # Init input and output modules
         self.inputs = Inputs((0,0), 5)
@@ -731,8 +732,6 @@ class HexNetwork(object):
             self.net[self.state].add_module(memory_node)
         for module in self.modules:
             self.net[self.state].add_module(module)
-
-        # We should probably put the memory nodes in the modules list...
 
         # RNG Initialize a core
         rng_hex_core(self.net[self.state], self.core)
@@ -861,9 +860,10 @@ class HexNetwork(object):
         # Thinking loop end, take what has been output so far.
         return [next[node].output for node in self.outputs[:-1]]
 
+    def render(self):
+        self.renderer.render_hex_network()
+
 # time to improve rendering so we can check this bad boy out
-hex = HexNetwork(16)
-hex.render()
-g = hex.net[hex.state].grid
-for i in range(16):
-    print(i, g[i])
+if __name__ == "__main__":
+    hex = HexNetwork(16)
+    #hex.render()
