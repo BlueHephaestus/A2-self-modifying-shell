@@ -12,10 +12,10 @@ class Node:
         self.exists = False
 
         # Output value for this node.
-        self.output = None
+        self.output = 0.0
 
         self.activation = self.sigmoid
-        self.aggregation = sum
+        self.aggregation = np.sum
         self.bias = None
         self.output_weight = None  # not using this for now
 
@@ -34,13 +34,7 @@ class Node:
         :return: input value computed from this node's connections.
         """
         # Gonna make it a for loop for more clarity.
-        # node_inputs = [grid[i].output * w for i, w in self.edges if grid[i].output is not None]
-
-        node_inputs = []
-        for input_idx, weight in self.in_edges:
-            if grid[input_idx].output is not None:
-                node_inputs.append(grid[input_idx].output * weight)
-        return self.aggregation(node_inputs)
+        return self.aggregation(grid[i].output*w for i,w in self.in_edges)
 
 
 class ModuleNode(Node):

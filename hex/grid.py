@@ -21,6 +21,20 @@ class Grid:
     def __setitem__(self, i, v):
         self.grid[tuple(i)] = v
 
+    def __iter__(self):
+        self.iter_i = 0
+        return self
+
+    def __next__(self):
+        # 1d -> 2d iteration
+        if self.iter_i < self.n*self.n:
+            i,j = self.iter_i//self.n,self.iter_i%self.n
+            res = self[i,j]
+            self.iter_i += 1
+            return res
+        else:
+            raise StopIteration
+
     def add_module(self, module):
         """
         Traverse the given module's nodes, adding ModuleNode's to the grid

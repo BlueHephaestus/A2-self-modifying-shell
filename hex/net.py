@@ -65,8 +65,7 @@ class HexNetwork:
     def __init__(self, grid_n):
         # For now, not extending past cartpole.
 
-        self.net = [Grid(grid_n), Grid(grid_n)]
-        self.state = 0
+        self.net = Grid(grid_n)
         self.core = []  # keeps track of non-special nodes for propagation
         self.renderer = NetworkRenderer(grid_n)
 
@@ -93,18 +92,18 @@ class HexNetwork:
             MetaModule((12, 0), threshold=2),
         ]
         # Add respective module nodes to grid
-        self.net[self.state].add_module(self.inputs)
-        self.net[self.state].add_module(self.outputs)
+        self.net.add_module(self.inputs)
+        self.net.add_module(self.outputs)
         for memory_node in self.memory:
-            self.net[self.state].add_module(memory_node)
+            self.net.add_module(memory_node)
         for module in self.modules:
-            self.net[self.state].add_module(module)
+            self.net.add_module(module)
 
         # RNG Initialize a core
-        rng_hex_core(self.net[self.state], self.core)
+        rng_hex_core(self.net, self.core)
 
         # RNG Connect the core to the rest of our network.
-        rng_hex_connect_core(self.net[self.state], self.core, self.inputs, self.outputs, self.memory, self.modules)
+        rng_hex_connect_core(self.net, self.core, self.inputs, self.outputs, self.memory, self.modules)
 
         self.render()
         # curr, next - only needed for nodes only
@@ -144,17 +143,13 @@ class HexNetwork:
         """
         prev_len = len(self.core) + len(self.memory) + len(self.modules)
         for think_i in tqdm(range(think_t), disable=True):
-            # swap grid objects (does nothing on first iteration)
-            curr = self.net[self.state]
-            #next = self.net[1 - self.state]
-            #self.state = 1 - self.state
 
             ### INPUT NODES ###
             # first step, get input node values into curr state
             # note: removed next[i]=v since it seemed useless
             if think_i == 0:
                 for input_idx, input_value in zip(self.inputs, input_values):
-                    curr[input_idx].output = input_value
+                    self.net[input_idx].output = input_value
                 self.render()
 
             ### CORE NODES ###
@@ -163,11 +158,11 @@ class HexNetwork:
             # then afterwards we handle modules, and check outputs
             # activate_nodes and propagate into next state
             for node in self.core:
-                node_input = curr[node].get_input(curr)
+                node_input = self.net[node].get_input(self.net)
 
                 # Compute output value for this node.
                 # would be node.bias + node.output_weight * agg if we were using that
-                curr[node].output = curr[node].activation(curr[node].bias + node_input)
+                self.net[node].output = self.net[node].activation(self.net[node].bias + node_input)
 
             ### MEMORY NODES ###
             # activate_memory_nodes
@@ -175,11 +170,11 @@ class HexNetwork:
                 # Only overwrite the value if threshold is exceeded.
                 # This handles the majority of the functions for memory, since this is where
                 # their special behavior comes into play.
-                threshold_node, storage_node = curr[memory_node[0]], curr[memory_node[1]]
+                threshold_node, storage_node = self.net[memory_node[0]], self.net[memory_node[1]]
 
                 ## THRESHOLD ##
                 # computed like normal modules, where we don't go past aggregation.
-                threshold_node_input = threshold_node.get_input(curr)
+                threshold_node_input = threshold_node.get_input(self.net)
 
                 # We now employ the resistance-to-overwrites that memory has, s.t. it will only
                 # update it's storage/output if the total threshold node input exceeds its initialized
@@ -189,8 +184,8 @@ class HexNetwork:
                     # Threshold exceeded; update storage value.
                     # TODO: decide if we will allow the storage node to have normal biases and activations in future.
                     #print(f"Updating Memory at {memory_node[0]}")
-                    storage_node_input = storage_node.get_input(curr)
-                    curr[memory_node[1]].output = storage_node_input
+                    storage_node_input = storage_node.get_input(self.net)
+                    self.net[memory_node[1]].output = storage_node_input
 
                 # If threshold not exceeded, its output will remain what it was last set to.
                 # Thus retaining its storage.
@@ -202,15 +197,15 @@ class HexNetwork:
                     # Compute full inputs for each module node
                     # Recall their outputs will never be set,
                     # And they use a different node class.
-                    node_input = curr[node].get_input(curr)
-                    curr[node].input = node_input
+                    node_input = self.net[node].get_input(self.net)
+                    self.net[node].input = node_input
 
                 # Now that all module nodes have their full inputs computed and stored,
                 # We see if the total inputs for this module can produce a valid activation.
                 # Logic for thresholds, addresses, etc. is left up to module.
-                if module.is_valid_activation(curr, self.core, self.inputs, self.outputs, self.memory, self.modules):
+                if module.is_valid_activation(self.net, self.core, self.inputs, self.outputs, self.memory, self.modules):
                     # If so, we do it and update the grid.
-                    module.activate(curr, self.core, self.inputs, self.outputs, self.memory, self.modules)
+                    module.activate(self.net, self.core, self.inputs, self.outputs, self.memory, self.modules)
 
             if len(self.core) + len(self.memory) + len(self.modules) != prev_len:
                 #print("\nNetwork Change Detected, Rendering...")
@@ -223,22 +218,22 @@ class HexNetwork:
             # activate_output
             ## OUTPUT ##
             for node in self.outputs[:-1]:
-                node_input = curr[node].get_input(curr)
-                curr[node].output = node_input
+                node_input = self.net[node].get_input(self.net)
+                self.net[node].output = node_input
 
             ## THRESHOLD ##
-            threshold_node = curr[self.outputs[-1]]
-            threshold_node_input = threshold_node.get_input(curr)
+            threshold_node = self.net[self.outputs[-1]]
+            threshold_node_input = threshold_node.get_input(self.net)
             if threshold_node_input > self.outputs.threshold:
                 # Output threshold exceeded, return output and end thinking loop.
-                #print(f"\nNetwork Thresholded Outputs: {[curr[node].output for node in self.outputs[:-1]]}")
-                return [curr[node].output for node in self.outputs[:-1]]
+                #print(f"\nNetwork Thresholded Outputs: {[self.net[node].output for node in self.outputs[:-1]]}")
+                return [self.net[node].output for node in self.outputs[:-1]]
 
         # Thinking loop end, take what has been output so far.
-        return [curr[node].output for node in self.outputs[:-1]]
+        return [self.net[node].output for node in self.outputs[:-1]]
 
     def render(self):
-        self.renderer.render_hex_network(self)
+        #self.renderer.render_hex_network(self)
         pass
 
 
