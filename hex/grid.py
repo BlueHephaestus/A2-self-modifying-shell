@@ -15,7 +15,6 @@ class Grid:
         return self.n
 
     def __getitem__(self, i):
-        # return self.grid[i]
         return self.grid[tuple(i)]
 
     def add_module(self, module):

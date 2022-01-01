@@ -1,8 +1,8 @@
+from hex.nodes import Node
 from hex.modules.edge import EdgeModule
 from hex.modules.memory import MemoryModule
 from hex.modules.module import Module
 from hex.modules.node import NodeModule
-from hex.nodes import Node
 
 
 class MetaModule(Module):

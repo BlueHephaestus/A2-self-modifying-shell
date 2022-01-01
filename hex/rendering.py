@@ -4,8 +4,14 @@ import networkx as nx
 import numpy as np
 from matplotlib import cm
 
-from hex import *
 from rng import rng_rnn
+from hex.modules.module import Module
+from hex.nodes import Node
+from hex.modules.edge import EdgeModule
+from hex.modules.io import Inputs, Outputs
+from hex.modules.memory import MemoryNode, MemoryModule
+from hex.modules.meta import MetaModule
+from hex.modules.node import NodeModule
 
 """
 Class to handle animations and rendering of networks, so that at any point it can be updated to view the evolving
@@ -71,41 +77,156 @@ class NetworkRenderer:
 
         return nx.relabel.relabel_nodes(net, mapping)
 
-    def render_hex_network(self, hex):
+    def graph_config(self):
+        # Graph bookkeeping - keep it from breaking
+        self.ax.set_xlim((-.5, self.n - .5))
+        self.ax.set_ylim((self.n - .5, -.5))
+        self.ax.set_xticks(np.arange(self.n))
+        self.ax.set_yticks(np.arange(self.n))
+        self.ax.tick_params(left=True, top=True, labelleft=True, labeltop=True)
+        self.ax.xaxis.tick_top()
+        self.ax.xaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(self.n - 1) + 0.5))
+        self.ax.yaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(self.n - 1) + 0.5))
+        #self.ax.yaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(0,self.n - 1,4) + 0.5))
+        #self.ax.grid(which='major',color='black', linewidth=3)
+        self.ax.grid(which='minor')
+        dividers = np.arange(-.5,self.n,4)
+        self.ax.vlines(dividers, ymin=-.5,ymax=self.n, colors="black", linewidths=3)
+        self.ax.hlines(dividers, xmin=-.5,xmax=self.n, colors="black", linewidths=3)
+
+
+    def render_hex_network(self, hexnet):
         """
         Given hex network, update current rendering to match it.
 
-        This calls render_net, but only after considerable parsing and converting of the given
-            network structure into something representative.
+        Separate from render_net, this handles specifically mapping the hex network into
+            a representative viewing.
 
         Mainly, this converts hex into a networkx network, with values for nodes explicitly
             to color-code them, not to convey the actual values of nodes and edges.
 
-        :param hex:
+        :param hexnet:
         :return: Renders network as new animated frame.
         """
-        coord2label = lambda coord: f"{coord[0]},{coord[1]}"
-        cmap = cm.get_cmap('hsv', 10)
-        net = nx.DiGraph()
+        # Only import this here to avoid circular imports
+        from hex.net import HexNetwork
+        nxnet = nx.DiGraph()
         colors = []
-        a = ["red", "orange", "yellow", "green", "blue", "purple", "pink", "black", "white"]
 
         # Iteratively go through and add, coloring each
-        for m in hex.modules:
-            node_labels = [coord2label(node) for node in m.nodes]
-            net.add_nodes_from(node_labels)
+        for mod in hexnet.modules + hexnet.memory + [hexnet.inputs] + [hexnet.outputs] + hexnet.core:
+            nodemod = isinstance(mod,NodeModule)
+            edgemod = isinstance(mod,EdgeModule)
+            memmod = isinstance(mod,MemoryModule)
+            metamod = isinstance(mod,MetaModule)
+            inputs = isinstance(mod, Inputs)
+            outputs = isinstance(mod, Outputs)
+            memnode = isinstance(mod, MemoryNode)
+            core = False
 
-            if isinstance(m, NodeModule):
-                colors.extend([a[0]] * len(m))
-            elif isinstance(m, EdgeModule):
-                colors.extend([a[1]] * len(m))
-            elif isinstance(m, MemoryModule):
-                colors.extend([a[2]] * len(m))
-            elif isinstance(m, MetaModule):
-                colors.extend([a[3]] * len(m))
+            ### LABELS ###
+            if nodemod: uid="NodeM"
+            elif edgemod: uid = "EdgeM"
+            elif memmod: uid="MemM"
+            elif metamod: uid="MetaM"
+            elif inputs: uid="Input"
+            elif outputs: uid="Output"
+            elif memnode: uid="Memory"
             else:
-                colors.extend([a[4]] * len(m))
-        self.render_net(net, node_color=colors, cmap=cmap)
+                core = True
+                uid="Core"
+
+            # Add with small unique id, and flip pos b/c networkx uses x,y not row,col
+            addnode = lambda node: nxnet.add_node(f"{uid}\n{node[0]},{node[1]}", pos=(node[1],node[0]))
+
+            if not core:
+                for node in mod:
+                    addnode(node)
+            else:
+                # Only add the one for a core node.
+                addnode(mod)
+
+            ### COLORS ###
+
+            #Addresses
+            if nodemod or memmod or metamod:
+                colors += ["magenta"]*len(mod.addr_nodes)
+            elif edgemod:
+                colors += ["magenta"]*len(mod.src_addr_nodes)
+                colors += ["red"]*len(mod.dst_addr_nodes)
+
+            #I/O
+            if inputs:
+                colors += ["silver"]*len(mod)
+            elif outputs:
+                colors += ["gold"]*(len(mod)-1)
+
+            # Thresholds
+            if nodemod or edgemod or memmod or metamod or memnode or outputs:
+                colors += ["orange"]
+
+            # Module type specifier
+            if metamod:
+                colors += ["green"]*len(mod.module_type_nodes)
+
+            # Values
+            if nodemod or edgemod or memmod or metamod or memnode:
+                colors += ["deepskyblue"]
+
+            # Core
+            if core:
+                colors += ["cyan"]
+
+        # Now that all nodes are added we can do edges
+        # We only use the coordinates for storing these so we use that via inverting pos.
+        # also, we use out_edges for now to keep it simple and avoid weighted edge rendering.
+        ### EDGES ###
+
+        def node_iter(mod_or_node):
+            """
+
+            :param mod_or_node: Either a Module, or a Node
+            :return: Iterate over the nodes, or node, in the object.
+            """
+            if isinstance(mod_or_node, Module):
+                for node in mod_or_node:
+                    yield node
+            else:
+                yield mod_or_node
+
+        pos = nx.get_node_attributes(nxnet, 'pos')
+        inv_pos = {v:k for k,v in pos.items()} #mapping of pos to labels
+        edges = []
+        for mod_or_node in hexnet.modules + hexnet.memory + [hexnet.inputs] + [hexnet.outputs] + hexnet.core:
+            for node in node_iter(mod_or_node):
+                # Now we are dealing with one object, one coordinate.
+                # We do the outward edges from this node and insert into official nxnet.
+                grid = hexnet.net[hexnet.state]
+                for out_node in grid[node].out_edges:
+                    edges.append((inv_pos[(node[1],node[0])], inv_pos[(out_node[1],out_node[0])]))
+
+        nxnet.add_edges_from(edges)
+
+
+
+
+
+
+
+
+        self.ax.clear()
+        nx.draw_networkx_nodes(nxnet, pos, node_color=colors, node_size=500, node_shape='s', ax=self.ax)
+        nx.draw_networkx_labels(nxnet, pos, font_size=6, ax=self.ax)
+        nx.draw_networkx_edges(nxnet, pos, ax=self.ax)
+
+        self.graph_config()
+
+        # edge_labels = [(node_labels[src_i], node_labels[dst_i]) for src_i, dst_i in edge_idxs]
+        # rnn.add_edges_from(edge_labels)
+        # Display new rendered net
+        #plt.show(block=False)
+        #plt.show(1)
+        plt.show()
 
     def render_net(self, net, node_color="#1f78b4", cmap=plt.get_cmap('jet')):
         """
@@ -126,16 +247,7 @@ class NetworkRenderer:
         nx.draw_networkx_labels(net, pos, font_size=6, ax=self.ax)
         nx.draw_networkx_edges(net, pos, ax=self.ax)
 
-        # Graph bookkeeping - keep it from breaking
-        self.ax.set_xlim((-.5, self.n - .5))
-        self.ax.set_ylim((self.n - .5, -.5))
-        self.ax.set_xticks(np.arange(self.n))
-        self.ax.set_yticks(np.arange(self.n))
-        self.ax.tick_params(left=True, top=True, labelleft=True, labeltop=True)
-        self.ax.xaxis.tick_top()
-        self.ax.xaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(self.n - 1) + 0.5))
-        self.ax.yaxis.set_minor_locator(matplotlib.ticker.FixedLocator(np.arange(self.n - 1) + 0.5))
-        self.ax.grid(which='minor')
+        self.graph_config()
 
         # Display new rendered net
         plt.show(block=False)
@@ -147,9 +259,7 @@ if __name__ == "__main__":
     na = NetworkRenderer(n)
     while True:
         net = rng_rnn(n)
-        net = HexNetwork(16)
-        na.render_hex_network(net)
-        # na.render_net(net, cmap=cm.get_cmap('hsv', 10))
-        plt.pause(1000000)
+        na.render_net(net, cmap=cm.get_cmap('hsv', 10))
+        plt.pause(1)
 
     plt.show()

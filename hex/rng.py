@@ -7,9 +7,9 @@ rng = default_rng()
 
 def rng_int(n):
     """
-    Generate random int from 0->n, inclusive
+    Generate random int from 1->n, inclusive
     """
-    return rng.integers(n + 1)
+    return rng.integers(1,n + 1)
 
 
 def rng_bias():
@@ -104,10 +104,10 @@ def rng_hex_core(grid, core):
     """
     grid_n = len(grid)
     # Get core quadrilateral inside of grid
-    core_h = grid_n - 4
-    core_w = grid_n - 4
-    core_i = 4
-    core_j = 4
+    core_h = grid_n - 12
+    core_w = grid_n - 12
+    core_i = 6
+    core_j = 6
     nodes_n = rng_int(core_h * core_w)
     edges_n = rng_int(nodes_n ** 2)
 

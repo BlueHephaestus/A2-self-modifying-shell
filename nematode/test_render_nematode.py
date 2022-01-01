@@ -1,5 +1,5 @@
 import pickle
-from hex.rendering import NetworkAnimator
+from rendering import NetworkAnimator
 import matplotlib.pyplot as plt
 
 with open("nematode/nematode.pkl", "rb") as f:

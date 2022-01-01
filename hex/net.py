@@ -12,7 +12,8 @@ from hex.modules.io import Inputs, Outputs
 from hex.modules.memory import MemoryNode, MemoryModule
 from hex.modules.meta import MetaModule
 from hex.modules.node import NodeModule
-from rng import rng_hex_core, rng_hex_connect_core
+from hex.rng import rng_hex_core, rng_hex_connect_core
+from hex.rendering import NetworkRenderer
 
 """
 Underlying representation of RNNs in this system:
@@ -66,7 +67,7 @@ class HexNetwork:
         self.net = [Grid(grid_n), Grid(grid_n)]
         self.state = 0
         self.core = []  # keeps track of non-special nodes for propagation
-        # self.renderer = NetworkRenderer(grid_n)
+        self.renderer = NetworkRenderer(grid_n)
 
         # Init input and output modules
         self.inputs = Inputs((0, 0), 5)
@@ -227,10 +228,11 @@ class HexNetwork:
         return [next[node].output for node in self.outputs[:-1]]
 
     def render(self):
-        self.renderer.render_hex_network()
+        self.renderer.render_hex_network(self)
 
 
 # time to improve rendering so we can check this bad boy out
 if __name__ == "__main__":
-    hex = HexNetwork(16)
-    # hex.render()
+    while True:
+        hexnet = HexNetwork(16)
+        hexnet.render()
