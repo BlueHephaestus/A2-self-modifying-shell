@@ -2,7 +2,13 @@ import networkx as nx
 import numpy as np
 from numpy.random import default_rng
 
+#rng = default_rng(seed=42)
+# Pick a seed and run with it so we can always recreate whatever results we find.
 rng = default_rng()
+#seed = rng.integers(4000)
+#seed = 3041
+#print(f"SEED: {seed}")
+#rng = default_rng(seed=seed)
 
 
 def rng_int(n):
@@ -121,7 +127,7 @@ def rng_hex_core(grid, core):
     # Add all nodes to grid (via setting exists=True)
     # And initialize biases.
     for node in node_idxs:
-        core.append(node)
+        core.append(tuple(node))
         grid[node].exists = True
         grid[node].bias = rng_bias()
 
@@ -141,8 +147,8 @@ def rng_hex_core(grid, core):
 
         # Add weighted edge (our RNG guarantees this node is already initialized btw)
         # Reminder that edges are of the form (idx, weight) where idx = (i,j) & weight = float
-        grid[dst].in_edges.append((src, rng_weight()))
-        grid[src].out_edges.append(dst)
+        grid[dst].in_edges.append((tuple(src), rng_weight()))
+        grid[src].out_edges.append(tuple(src))
 
 
 def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
@@ -214,5 +220,5 @@ def rng_hex_connect_core(grid, core, inputs, outputs, memory, modules):
     # Implement these edges in our grid with rng weights
     for edge in edges:
         src, dst = edge
-        grid[dst].in_edges.append((src, rng_weight()))
-        grid[src].out_edges.append(dst)
+        grid[dst].in_edges.append((tuple(src), rng_weight()))
+        grid[src].out_edges.append(tuple(dst))

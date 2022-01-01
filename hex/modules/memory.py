@@ -44,12 +44,13 @@ class MemoryModule(Module):
         self.addr = self.get_address(grid, self.addr_nodes)
 
         # By definition this can't be on the farthest column and have room for full memory node.
-        if self.addr[1] >= grid.shape[1]:
+        if self.addr[1] == grid.shape[1]-1:
             return False
 
         # Threshold meaning the new memory node's threshold
         self.threshold_addr = self.addr
-        self.storage_addr = self.addr + (0, 1)
+        self.storage_addr = (self.addr[0],self.addr[1]+1)
+
         threshold_node = grid[self.threshold_addr]
         storage_node = grid[self.storage_addr]
 
@@ -86,7 +87,7 @@ class MemoryModule(Module):
                     No connections, no values in storage.
                 Address points to an existing node: Update threshold value to match given value.
         """
-        value = grid[self.value_node]
+        value = grid[self.value_node].input
         threshold_node = grid[self.threshold_addr]
         storage_node = grid[self.storage_addr]
 
@@ -118,7 +119,7 @@ class MemoryModule(Module):
             del memory[self.memory_i]
 
         # Non-delete cases - edit existing or add new if empty
-        else:
+        elif value >= self.epsilon:
             if not self.memory_node_exists:
                 # Add
                 memory_node = MemoryNode(self.threshold_addr, threshold=value)

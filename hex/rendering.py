@@ -4,9 +4,8 @@ import networkx as nx
 import numpy as np
 from matplotlib import cm
 
-from rng import rng_rnn
+from hex.rng import rng_rnn
 from hex.modules.module import Module
-from hex.nodes import Node
 from hex.modules.edge import EdgeModule
 from hex.modules.io import Inputs, Outputs
 from hex.modules.memory import MemoryNode, MemoryModule
@@ -32,7 +31,8 @@ class NetworkRenderer:
         """
         self.n = n
 
-        self.fig, self.ax = plt.subplots(figsize=(n // 2, n // 2))
+        #self.fig, self.ax = plt.subplots(figsize=(n // 2, n // 2))
+        self.fig, self.ax = plt.subplots(figsize=(n,n))
 
         # Plot metadata / config
         # init empty placeholder
@@ -207,13 +207,6 @@ class NetworkRenderer:
 
         nxnet.add_edges_from(edges)
 
-
-
-
-
-
-
-
         self.ax.clear()
         nx.draw_networkx_nodes(nxnet, pos, node_color=colors, node_size=500, node_shape='s', ax=self.ax)
         nx.draw_networkx_labels(nxnet, pos, font_size=6, ax=self.ax)
@@ -221,12 +214,10 @@ class NetworkRenderer:
 
         self.graph_config()
 
-        # edge_labels = [(node_labels[src_i], node_labels[dst_i]) for src_i, dst_i in edge_idxs]
-        # rnn.add_edges_from(edge_labels)
-        # Display new rendered net
-        #plt.show(block=False)
+        plt.show(block=False)
+        plt.pause(0.001)
         #plt.show(1)
-        plt.show()
+        #plt.show()
 
     def render_net(self, net, node_color="#1f78b4", cmap=plt.get_cmap('jet')):
         """

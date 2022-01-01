@@ -58,7 +58,7 @@ class NodeModule(Module):
                     No connections.
                 Address points to an existing node: Update bias value to match given value.
         """
-        value = grid[self.value_node]
+        value = grid[self.value_node].input
         node = grid[self.addr]
 
         # Delete if any node exists, otherwise leave empty.
@@ -80,10 +80,11 @@ class NodeModule(Module):
             core.remove(self.addr)
 
         # Non-delete cases - edit existing or add new if empty
-        else:
+        elif abs(value) >= self.epsilon:
             if not node.exists:
                 # Add
                 grid[self.addr] = Node()
+                grid[self.addr].exists = True
                 core.append(self.addr)
             # Edit bias regardless of if pre-existing or new
             grid[self.addr].bias = value

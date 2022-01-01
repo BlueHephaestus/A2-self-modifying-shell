@@ -68,7 +68,7 @@ class EdgeModule(Module):
                 If no edge exists yet, create new one with given value as weight.
                 If edge exists, update weight to match given value.
         """
-        value = grid[self.value_node]
+        value = grid[self.value_node].input
         edge_exists = self.dst_addr in grid[self.src_addr].out_edges
 
         # Delete if any edge exists, otherwise leave empty.
@@ -78,7 +78,7 @@ class EdgeModule(Module):
                                             in_edge[0] != self.src_addr]
 
         # Non-delete cases - edit existing or add new if not
-        else:
+        elif abs(value) >= self.epsilon:
             if not edge_exists:
                 # Add
                 grid[self.src_addr].out_edges.append(self.dst_addr)

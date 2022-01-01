@@ -97,6 +97,9 @@ class MetaModule(Module):
         if not self.module_exists:
             module = self.module_type(self.addr, -1)  # get node positions via dummy module
             for node in module.nodes:
+                if not grid.in_bounds(node):
+                    return False
+
                 if grid[node].exists:
                     return False
 
@@ -120,7 +123,7 @@ class MetaModule(Module):
                     No connections, nothing else.
                 Address points to an existing module: Update threshold value to match given value.
         """
-        value = grid[self.value_node]
+        value = grid[self.value_node].input
 
         # Delete if any module exists, otherwise leave empty.
         if value < self.epsilon and self.module_exists:
@@ -143,7 +146,7 @@ class MetaModule(Module):
             del modules[self.module_i]
 
         # Non-delete cases - edit existing or add new if empty
-        else:
+        elif value >= self.epsilon:
             if not self.module_exists:
                 # Add
                 module = self.module_type(self.addr, threshold=value)

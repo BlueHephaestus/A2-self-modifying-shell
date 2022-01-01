@@ -7,6 +7,7 @@ class Grid:
     def __init__(self, n):
         self.n = n
         self.grid = np.zeros((n, n), dtype=Node)
+        self.shape = self.grid.shape
         for i in range(self.n):
             for j in range(self.n):
                 self.grid[i, j] = Node()
@@ -16,6 +17,9 @@ class Grid:
 
     def __getitem__(self, i):
         return self.grid[tuple(i)]
+
+    def __setitem__(self, i, v):
+        self.grid[tuple(i)] = v
 
     def add_module(self, module):
         """
@@ -27,3 +31,10 @@ class Grid:
         """
         for node in module.nodes:
             self.grid[node] = ModuleNode()
+
+    def in_bounds(self, node):
+        """
+        :param node: coordinate for a node.
+        :return: Return if the given node is inside our given grid bounds.
+        """
+        return node[0] >= 0 and node[0] < self.n and node[1] >= 0 and node[1] < self.n
