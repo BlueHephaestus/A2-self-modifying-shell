@@ -140,25 +140,27 @@ class HexNetwork:
         for node in module.nodes:
             self.grid[node] = ModuleNode()
 
-    # TODO separate into propagate and aggregate again if we only call this in 2 different ways
-    def propagate(self, node, bias=True, activation=True):
-        # Compute WX + b for a given node
-        # each node has different numbers of inputs so we have to compute each separately
-        # Each node also may differ in which functions are activated, so this has varying functionality,
-        # and can do WX, WX + b, activ(WX), or activ(WX + b) depending on usecase.
-
+    def aggregate(self, node):
+        # Compute WX for a given node
         # W = vector of node input weights
         # X = vector of node inputs
         # WX = dotted together, (n,1) x (1,n) -> 1
-        idxs = self.grid[node].in_edges
-        w = self.grid[node].in_weights
-        x = self.values[idxs[:, 0], idxs[:, 1]]
-        z = np.dot(w,x)
-        if bias:
-            z += self.biases[node]
-        if activation:
-            z = sigmoid(z)
-        return z
+        # This gets called more than any other function in the network, it is the crux of optimizations.
+        # As a result I condensed what was multiple lines into one hopefully more optimized one.
+
+        # OI FUTURE SELF
+        # We were optimizing this. turns out setting the value beforehand, with this line
+        node = self.grid[node]
+        # actually made it 1% faster, like actually 1% i tested multiple times.
+        # Remember, we have 16%  time used on this function's use of dot,
+        # And 23.8% time used on everything else this function does.
+        return np.dot(node.in_weights, self.values[node.in_edges[:, 0], node.in_edges[:, 1]])
+
+    def propagate(self, node):
+        # Compute activation(WX + b) for a given node.
+        # Makes use of aggregate() for the WX.
+        z = np.dot(self.grid[node].in_weights, self.values[self.grid[node].in_edges[:, 0], self.grid[node].in_edges[:, 1]])
+        return sigmoid(z + self.biases[node])
 
     def activate(self, input_values, think_t):
         """
@@ -205,7 +207,7 @@ class HexNetwork:
 
                 ## THRESHOLD ##
                 # computed like normal modules, where we don't go past aggregation.
-                threshold_node_input = self.propagate(memory_node[0], bias=False, activation=False)
+                threshold_node_input = self.aggregate(memory_node[0])
 
                 # We now employ the resistance-to-overwrites that memory has, s.t. it will only
                 # update it's storage/output if the total threshold node input exceeds its initialized
@@ -214,7 +216,7 @@ class HexNetwork:
                     ## STORAGE OUTPUT ##
                     # Threshold exceeded; update storage value.
                     # TODO: decide if we will allow the storage node to have normal biases and activations in future.
-                    self.values[memory_node[1]] = self.propagate(memory_node[1], bias=False, activation=False)
+                    self.values[memory_node[1]] = self.aggregate(memory_node[1])
 
                 # If threshold not exceeded, its output will remain what it was last set to.
                 # Thus retaining its storage.
@@ -226,7 +228,7 @@ class HexNetwork:
                     # Compute full inputs for each module node
                     # Recall their outputs will never be set,
                     # And they use a different node class.
-                    self.values[node] = self.propagate(node, bias=False, activation=False)
+                    self.values[node] = self.aggregate(node)
 
                 # Now that all module nodes have their full inputs computed and stored,
                 # We see if the total inputs for this module can produce a valid activation.
@@ -246,10 +248,10 @@ class HexNetwork:
             # activate_output
             ## OUTPUT ##
             for node in self.outputs[:-1]:
-                self.values[node] = self.propagate(node, bias=False, activation=False)
+                self.values[node] = self.aggregate(node)
 
             ## THRESHOLD ##
-            if self.propagate(self.outputs[-1], bias=False, activation=False) > self.outputs.threshold:
+            if self.aggregate(self.outputs[-1]) > self.outputs.threshold:
                 # Output threshold exceeded, return output and end thinking loop.
                 #print(f"\nNetwork Thresholded Outputs: {[self.net[node].output for node in self.outputs[:-1]]}")
                 return [self.values[node] for node in self.outputs[:-1]]
