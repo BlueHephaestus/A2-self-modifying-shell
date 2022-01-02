@@ -18,7 +18,7 @@ class NodeModule(Module):
         self.threshold_node = self.nodes[-2]
         self.value_node = self.nodes[-1]
 
-    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+    def is_valid_activation(self, grid, values, core, inputs, outputs, memory, modules):
         """
         Determine if this is a valid activation for our Node Modules
         This occurs if all of the following are true:
@@ -30,13 +30,13 @@ class NodeModule(Module):
         """
 
         # If not exceeded, we don't do anything
-        if grid[self.threshold_node].input <= self.threshold:
+        if values[self.threshold_node] <= self.threshold:
             return False
 
         # If address points to a ModuleNode of any type (this includes inputs and outputs)
         # Yes, this means that this module can't overwrite storage nodes - those are meant
         # to only be writable via accessing the memory and exceeding that threshold.
-        self.addr = self.get_address(grid, self.addr_nodes)
+        self.addr = self.get_address(values, self.addr_nodes)
         node = grid[self.addr]
         if isinstance(node, ModuleNode):
             return False
@@ -44,7 +44,7 @@ class NodeModule(Module):
         # Otherwise this is valid, proceed with activation
         return True
 
-    def activate(self, grid, core, inputs, outputs, memory, modules):
+    def activate(self, grid, values, biases, core, inputs, outputs, memory, modules):
         """
         Execute activation for NodeModule.
         This will perform the following based on the value in value_node:
@@ -58,24 +58,24 @@ class NodeModule(Module):
                     No connections.
                 Address points to an existing node: Update bias value to match given value.
         """
-        value = grid[self.value_node].input
+        value = values[self.value_node]
         node = grid[self.addr]
 
         # Delete if any node exists, otherwise leave empty.
         if abs(value) < self.epsilon and node.exists:
             # Remove all edges and references
-            # TODO: consider changing to a dict structure to save complexity.
             # src (out_edges) <-> node (in edges, out edges) <-> dst (in edges)
-            for in_node, _weight in node.in_edges:
+            for in_node in node.in_edges:
                 # Remove references from any incoming nodes' out_edges lists.
-                grid[in_node].out_edges.remove(self.addr)
+                grid[in_node].remove_outgoing(self.addr)
 
             for out_node in node.out_edges:
                 # Remove references from any outgoing nodes' in_edges lists.
-                grid[out_node].in_edges = [in_edge for in_edge in grid[out_node].in_edges if in_edge[0] != self.addr]
+                grid[out_node].remove_incoming(self.addr)
 
             # Finally remove the node via full reset, from both grid and core.
-            # TODO: consider adding grid.delete method for a given addr to be replaced with new Node() object.
+            # Don't need to remove from other arrays since our code guarantees no connections can happen
+            # if the node doesn't exist.
             grid[self.addr] = Node()
             core.remove(self.addr)
 
@@ -87,4 +87,4 @@ class NodeModule(Module):
                 grid[self.addr].exists = True
                 core.append(self.addr)
             # Edit bias regardless of if pre-existing or new
-            grid[self.addr].bias = value
+            biases[self.addr] = value

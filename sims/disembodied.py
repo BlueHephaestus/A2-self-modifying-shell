@@ -6,6 +6,7 @@ import sys
 
 from hex.net import HexNetwork
 import hex.rng
+from hex.nodes import ModuleNode
 from hex.rng import rng_bias
 from numpy.random import default_rng
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ seed = 73
 s = 1
 #n = sys.maxsize
 n = 1
-t = 10000
+t = 100000
 for seed in range(seed,seed+s):
     hex.rng.rng = default_rng(seed)
     print(f"SEED: {seed}")
@@ -50,9 +51,8 @@ for seed in range(seed,seed+s):
     # Verify it's not changed
     # if every node is within 1e-7 of original.
     matching = True
-    for expected, actual in zip(control_net.net[0], net.net):
-        expected = expected.output
-        actual = actual.output
+    i = 0
+    for expected, actual in zip(control_net.values.flatten(), net.values.flatten()):
         if expected is not None and actual is not None:
             # if both have values
             if abs(expected-actual) >= .00000001:
@@ -63,11 +63,12 @@ for seed in range(seed,seed+s):
             # If either are None but the other isn't.
             if expected is None:
                 expected = 0.0
-            elif actual is None:
+            if actual is None:
                 actual = 0.0
             if expected != actual:
                 matching=False
                 break
+        i += 1
 
     if not matching:
         print(f"MISMATCH: EXPECTED {expected}, ACTUAL {actual}")

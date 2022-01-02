@@ -24,7 +24,7 @@ class MemoryModule(Module):
         self.threshold_node = self.nodes[-2]
         self.value_node = self.nodes[-1]
 
-    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+    def is_valid_activation(self, grid, values, core, inputs, outputs, memory, modules):
         """
         Determine if this is a valid activation for our Memory Modules
         This occurs if all of the following are true:
@@ -38,10 +38,10 @@ class MemoryModule(Module):
         """
 
         # If not exceeded, we don't do anything
-        if grid[self.threshold_node].input <= self.threshold:
+        if values[self.threshold_node] <= self.threshold:
             return False
 
-        self.addr = self.get_address(grid, self.addr_nodes)
+        self.addr = self.get_address(values, self.addr_nodes)
 
         # By definition this can't be on the farthest column and have room for full memory node.
         if self.addr[1] == grid.shape[1]-1:
@@ -72,7 +72,7 @@ class MemoryModule(Module):
         # proceed with activation.
         return True
 
-    def activate(self, grid, core, inputs, outputs, memory, modules):
+    def activate(self, grid, values, biases, core, inputs, outputs, memory, modules):
         """
         Execute activation for MemoryModule.
         This will perform the following based on the value in value_node:
@@ -87,7 +87,7 @@ class MemoryModule(Module):
                     No connections, no values in storage.
                 Address points to an existing node: Update threshold value to match given value.
         """
-        value = grid[self.value_node].input
+        value = outputs[self.value_node]
         threshold_node = grid[self.threshold_addr]
         storage_node = grid[self.storage_addr]
 
@@ -100,18 +100,17 @@ class MemoryModule(Module):
             # Remove threshold inputs
             for in_node, _weight in threshold_node.in_edges:
                 # Remove references from any incoming nodes' out_edges lists.
-                grid[in_node].out_edges.remove(self.threshold_addr)
+                grid[in_node].remove_outgoing(self.threshold_addr)
 
             # Remove storage inputs
             for in_node, _weight in storage_node.in_edges:
                 # Remove references from any incoming nodes' out_edges lists.
-                grid[in_node].out_edges.remove(self.storage_addr)
+                grid[in_node].remove_outgoing(self.storage_addr)
 
             # Remove storage outputs
             for out_node in storage_node.out_edges:
                 # Remove references from any outgoing nodes' in_edges lists.
-                grid[out_node].in_edges = [in_edge for in_edge in grid[out_node].in_edges if
-                                           in_edge[0] != self.storage_addr]
+                grid[out_node].remove_incoming(self.storage_addr)
 
             # Finally remove the node via full reset, from both grid and memory.
             grid[self.threshold_addr] = Node()

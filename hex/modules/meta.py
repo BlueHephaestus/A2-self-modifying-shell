@@ -1,3 +1,5 @@
+import numpy as np
+
 from hex.nodes import Node
 from hex.modules.edge import EdgeModule
 from hex.modules.memory import MemoryModule
@@ -24,7 +26,7 @@ class MetaModule(Module):
         self.module_type_mapping = [NodeModule, EdgeModule, MemoryModule, MetaModule]
 
     @staticmethod
-    def get_module_type(grid, type_nodes, type_mapping):
+    def get_module_type(values, type_nodes, type_mapping):
 
         """
         Given a grid and the nodes on it which contain a raw module type input for
@@ -42,11 +44,11 @@ class MetaModule(Module):
         """
         module_type = ""
         for node in type_nodes:
-            type_val = grid[node].input
+            type_val = values[node]
             module_type += "0" if type_val <= 0 else "1"
         return type_mapping[int(module_type, 2)]
 
-    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+    def is_valid_activation(self, grid, values, core, inputs, outputs, memory, modules):
         """
         Determine if this is a valid activation for our Meta Module
         This occurs if all of the following are true:
@@ -64,11 +66,11 @@ class MetaModule(Module):
         """
 
         # If not exceeded, we don't do anything
-        if grid[self.threshold_node].input <= self.threshold:
+        if values[self.threshold_node] <= self.threshold:
             return False
 
-        self.addr = self.get_address(grid, self.addr_nodes)
-        self.module_type = self.get_module_type(grid, self.module_type_nodes, self.module_type_mapping)
+        self.addr = self.get_address(values, self.addr_nodes)
+        self.module_type = self.get_module_type(values, self.module_type_nodes, self.module_type_mapping)
 
         ###
         # We always care about both address and module type.
@@ -97,7 +99,7 @@ class MetaModule(Module):
         if not self.module_exists:
             module = self.module_type(self.addr, -1)  # get node positions via dummy module
             for node in module.nodes:
-                if not grid.in_bounds(node):
+                if not module.in_bounds(node, grid):
                     return False
 
                 if grid[node].exists:
@@ -107,7 +109,7 @@ class MetaModule(Module):
         # proceed with activation.
         return True
 
-    def activate(self, grid, core, inputs, outputs, memory, modules):
+    def activate(self, grid, values, biases, core, inputs, outputs, memory, modules):
         """
         Execute activation for MetaModule.
         This will perform the following based on the value in value_node:
@@ -123,7 +125,7 @@ class MetaModule(Module):
                     No connections, nothing else.
                 Address points to an existing module: Update threshold value to match given value.
         """
-        value = grid[self.value_node].input
+        value = values[self.value_node]
 
         # Delete if any module exists, otherwise leave empty.
         if value < self.epsilon and self.module_exists:
@@ -137,7 +139,7 @@ class MetaModule(Module):
                 # Remove all outgoing connections to these nodes.
                 for in_node, _weight in grid[node].in_edges:
                     # Remove references from any incoming nodes' out_edges lists.
-                    grid[in_node].out_edges.remove(node)
+                    grid[in_node].remove_outgoing(node)
 
                 # Remove the node
                 grid[node] = Node()

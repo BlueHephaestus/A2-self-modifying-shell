@@ -35,8 +35,16 @@ class Module:
         else:
             raise StopIteration
 
+    def in_bounds(self, node, grid):
+        """
+        :param node: coordinate for a node.
+        :param grid: grid to check bounds
+        :return: Return if the given node is inside our given grid bounds.
+        """
+        return (0 <= node).all() and (node < grid.shape[0]).all()
+
     @staticmethod
-    def get_address(grid, addr_nodes):
+    def get_address(values, addr_nodes):
         """
         Given a grid and the nodes on it which contain a raw address input for fully indicating
             another node in the grid:
@@ -59,7 +67,7 @@ class Module:
         n = len(addr_nodes) // 2
         addrs = ""
         for node in addr_nodes:
-            addr_val = grid[node].input
+            addr_val = values[node]
             addrs += "0" if addr_val <= 0 else "1"
         return int(addrs[:n], 2), int(addrs[n:], 2)
 
@@ -82,7 +90,7 @@ class Module:
         """
         pass
 
-    def activate(self, grid, core, inputs, outputs, memory, modules):
+    def activate(self, grid, values, biases, core, inputs, outputs, memory, modules):
         """
         Assuming is_valid_activation == True, perform this module's function.
             This may be adding, editing, or deleting given on the inputs it receives.

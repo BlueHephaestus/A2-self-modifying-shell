@@ -15,7 +15,7 @@ class EdgeModule(Module):
         self.threshold_node = self.nodes[-2]
         self.value_node = self.nodes[-1]
 
-    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+    def is_valid_activation(self, grid, values, core, inputs, outputs, memory, modules):
         """
         Determine if this is a valid activation for our Edge Modules
         This occurs if all of the following are true:
@@ -32,11 +32,11 @@ class EdgeModule(Module):
         """
 
         # If not exceeded, we don't do anything
-        if grid[self.threshold_node].input <= self.threshold:
+        if values[self.threshold_node] <= self.threshold:
             return False
 
-        self.src_addr = self.get_address(grid, self.src_addr_nodes)
-        self.dst_addr = self.get_address(grid, self.src_addr_nodes)
+        self.src_addr = self.get_address(values, self.src_addr_nodes)
+        self.dst_addr = self.get_address(values, self.src_addr_nodes)
         src = grid[self.src_addr]
         dst = grid[self.dst_addr]
 
@@ -57,7 +57,7 @@ class EdgeModule(Module):
         # Otherwise this is valid, proceed with activation
         return True
 
-    def activate(self, grid, core, inputs, outputs, memory, modules):
+    def activate(self, grid, values, biases, core, inputs, outputs, memory, modules):
         """
         Execute activation for EdgeModule.
         This will perform the following based on the value in value_node:
@@ -68,23 +68,20 @@ class EdgeModule(Module):
                 If no edge exists yet, create new one with given value as weight.
                 If edge exists, update weight to match given value.
         """
-        value = grid[self.value_node].input
+        value = values[self.value_node]
         edge_exists = self.dst_addr in grid[self.src_addr].out_edges
 
         # Delete if any edge exists, otherwise leave empty.
         if abs(value) < self.epsilon and edge_exists:
-            grid[self.src_addr].out_edges.remove(self.dst_addr)
-            grid[self.dst_addr].in_edges = [in_edge for in_edge in grid[self.dst_addr].in_edges if
-                                            in_edge[0] != self.src_addr]
+            grid[self.src_addr].remove_outgoing(self.dst_addr)
+            grid[self.dst_addr].remove_incoming(self.src_addr)
 
         # Non-delete cases - edit existing or add new if not
         elif abs(value) >= self.epsilon:
             if not edge_exists:
                 # Add
-                grid[self.src_addr].out_edges.append(self.dst_addr)
-                grid[self.dst_addr].in_edges.append((self.src_addr, value))
+                grid[self.src_addr].add_outgoing(self.dst_addr)
+                grid[self.dst_addr].add_incoming(self.src_addr, value)
             else:
-                # Edit (via remove and re-add because tuples)
-                grid[self.dst_addr].in_edges = [in_edge for in_edge in grid[self.dst_addr].in_edges if
-                                                in_edge[0] != self.src_addr]
-                grid[self.dst_addr].in_edges.append((self.src_addr, value))
+                # Edit
+                grid[self.dst_addr].in_edges.edit_incoming(self.src_addr, value)
