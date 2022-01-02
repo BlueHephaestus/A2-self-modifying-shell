@@ -1,5 +1,5 @@
-from hex.nodes import Node, ModuleNode
 from hex.modules.module import Module
+from hex.nodes import Node, ModuleNode
 
 
 # could use 1d -> 2d to do this more elegantly but it'd be just as verbose and harder to read
@@ -30,6 +30,7 @@ class NodeModule(Module):
         """
 
         # If not exceeded, we don't do anything
+        # TODO make parent function for checking threshold
         if values[self.threshold_node] <= self.threshold:
             return False
 

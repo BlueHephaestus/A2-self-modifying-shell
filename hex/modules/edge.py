@@ -84,4 +84,4 @@ class EdgeModule(Module):
                 grid[self.dst_addr].add_incoming(self.src_addr, value)
             else:
                 # Edit
-                grid[self.dst_addr].in_edges.edit_incoming(self.src_addr, value)
+                grid[self.dst_addr].edit_incoming(self.src_addr, value)

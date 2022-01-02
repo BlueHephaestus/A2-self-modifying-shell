@@ -2,23 +2,22 @@
 Test the network without a simulation, to examine it's behavior in self-mods.
     Also for fuzzing, since we can run through tons of random data to produce all sorts of situations.
 """
-import sys
 
-from hex.net import HexNetwork
-import hex.rng
-from hex.nodes import ModuleNode
-from hex.rng import rng_bias
-from numpy.random import default_rng
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import pickle
 import time
+
+from numpy.random import default_rng
+from tqdm import tqdm
+
+import hex.rng
+from hex.net import HexNetwork
+from hex.rng import rng_bias
 
 seed = 73
 s = 1
 #n = sys.maxsize
 n = 1
-t = 100000
+t = 10000
 for seed in range(seed,seed+s):
     hex.rng.rng = default_rng(seed)
     print(f"SEED: {seed}")
@@ -60,14 +59,7 @@ for seed in range(seed,seed+s):
                 break
 
         elif expected != actual:
-            # If either are None but the other isn't.
-            if expected is None:
-                expected = 0.0
-            if actual is None:
-                actual = 0.0
-            if expected != actual:
-                matching=False
-                break
+            matching=False
         i += 1
 
     if not matching:

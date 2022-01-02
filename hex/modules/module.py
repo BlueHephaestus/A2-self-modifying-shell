@@ -35,7 +35,8 @@ class Module:
         else:
             raise StopIteration
 
-    def in_bounds(self, node, grid):
+    @staticmethod
+    def in_bounds(node, grid):
         """
         :param node: coordinate for a node.
         :param grid: grid to check bounds
@@ -58,7 +59,7 @@ class Module:
 
         e.g. 3,3,-1,2 for a grid of 4x4 -> 1,1,0,1 -> 11, 01 -> Node at (3, 1)
 
-        :param grid: Usual grid at this timestep with addr values.
+        :param values: Usual values at this timestep for all addrs.
         :param addr_nodes: Address nodes with values indicating another node on the grid.
             Assumed to be an even number.
         :return: Coordinate of node on grid indicated by addr_nodes, of form (i, j)
@@ -71,7 +72,7 @@ class Module:
             addrs += "0" if addr_val <= 0 else "1"
         return int(addrs[:n], 2), int(addrs[n:], 2)
 
-    def is_valid_activation(self, grid, core, inputs, outputs, memory, modules):
+    def is_valid_activation(self, grid, values, core, inputs, outputs, memory, modules):
         """
         If the module, at this timestep, has met all criteria for a valid activation.
 
@@ -81,6 +82,7 @@ class Module:
             if options are valid and in range.
 
         :param grid: Usual hex grid where all nodes and modules are stored.
+        :param grid: Usual grid of values
         :param core: List of core node idxs.
         :param inputs: Module subclass denoting input locations and nodes.
         :param outputs: Module subclass denoting output locations and nodes.
@@ -96,6 +98,8 @@ class Module:
             This may be adding, editing, or deleting given on the inputs it receives.
 
         :param grid: Usual hex grid where all nodes and modules are stored.
+        :param values: Usual grid of values
+        :param biases: Usual grid of biases
         :param core: List of core node idxs.
         :param inputs: Module subclass denoting input locations and nodes.
         :param outputs: Module subclass denoting output locations and nodes.

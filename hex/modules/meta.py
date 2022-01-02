@@ -1,10 +1,8 @@
-import numpy as np
-
-from hex.nodes import Node
 from hex.modules.edge import EdgeModule
 from hex.modules.memory import MemoryModule
 from hex.modules.module import Module
 from hex.modules.node import NodeModule
+from hex.nodes import Node
 
 
 class MetaModule(Module):
@@ -37,7 +35,7 @@ class MetaModule(Module):
             Use as index mapping to get module type
         # e.g. node vals of [-3.43, 1.21] -> [0, 1] -> 01 -> 1 -> map[1] -> EdgeModule.
 
-        :param grid: Usual grid at this timestep with addr values.
+        :param values: Usual values at this timestep for all addrs.
         :param type_nodes: Type nodes with values indicating which module to use.
         :param type_mapping: Mapping of value -> Module subclass
         :return: one of the given modules in the mapping, a subclass of Module.

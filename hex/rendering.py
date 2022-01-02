@@ -4,13 +4,13 @@ import networkx as nx
 import numpy as np
 from matplotlib import cm
 
-from hex.rng import rng_rnn
-from hex.modules.module import Module
 from hex.modules.edge import EdgeModule
 from hex.modules.io import Inputs, Outputs
 from hex.modules.memory import MemoryNode, MemoryModule
 from hex.modules.meta import MetaModule
+from hex.modules.module import Module
 from hex.modules.node import NodeModule
+from hex.rng import rng_networkx_rnn
 
 """
 Class to handle animations and rendering of networks, so that at any point it can be updated to view the evolving
@@ -94,7 +94,7 @@ class NetworkRenderer:
         self.ax.vlines(dividers, ymin=-.5,ymax=self.n, colors="black", linewidths=3)
         self.ax.hlines(dividers, xmin=-.5,xmax=self.n, colors="black", linewidths=3)
 
-
+    # noinspection PyPep8
     def render_hex_network(self, hexnet):
         """
         Given hex network, update current rendering to match it.
@@ -109,7 +109,6 @@ class NetworkRenderer:
         :return: Renders network as new animated frame.
         """
         # Only import this here to avoid circular imports
-        from hex.net import HexNetwork
         nxnet = nx.DiGraph()
         colors = []
 
@@ -249,7 +248,7 @@ if __name__ == "__main__":
     n = 16
     na = NetworkRenderer(n)
     while True:
-        net = rng_rnn(n)
+        net = rng_networkx_rnn(n)
         na.render_net(net, cmap=cm.get_cmap('hsv', 10))
         plt.pause(1)
 

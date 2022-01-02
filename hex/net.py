@@ -6,18 +6,18 @@ This means that there is a highly limited size of it, since there can only be 25
     it can of course be easily extended i'm just doing it this way so i can view the entire network easily,
     and because rather than extending the range of each dimension i'll probably add dimensions instead. not sure.
 """
-from hex.grid import Grid
+import numpy as np
+from scipy.special import expit as sigmoid
+from tqdm import tqdm
+
 from hex.modules.edge import EdgeModule
 from hex.modules.io import Inputs, Outputs
 from hex.modules.memory import MemoryNode, MemoryModule
 from hex.modules.meta import MetaModule
 from hex.modules.node import NodeModule
 from hex.nodes import Node, ModuleNode
-from hex.rng import rng_hex_core, rng_hex_connect_core
 from hex.rendering import NetworkRenderer
-from tqdm import tqdm
-import numpy as np
-from scipy.special import expit as sigmoid
+from hex.rng import rng_hex_core, rng_hex_connect_core
 
 """
 Underlying representation of RNNs in this system:
@@ -140,6 +140,7 @@ class HexNetwork:
         for node in module.nodes:
             self.grid[node] = ModuleNode()
 
+    # TODO separate into propagate and aggregate again if we only call this in 2 different ways
     def propagate(self, node, bias=True, activation=True):
         # Compute WX + b for a given node
         # each node has different numbers of inputs so we have to compute each separately

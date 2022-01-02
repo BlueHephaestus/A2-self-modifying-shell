@@ -49,7 +49,7 @@ def rng_2d_coord_choice(w, h, n):
     return coords_2d
 
 
-def rng_rnn(n):
+def rng_networkx_rnn(n):
     """
     :param n: Size of square bounds, 0-n
     :return: Randomly generated RNN within bounds.
@@ -105,6 +105,7 @@ def rng_hex_core(grid, biases, core):
 
     :param grid: Initialized Base Hex Grid, with modules but without connections or core.
         Shape is N x N
+    :param biases: Grid of biases for value calculations.
     :param core: List to add new core node idxs to.
     :return: None, modifies the grid in place to add a core, and same for core list.
     """
@@ -122,6 +123,7 @@ def rng_hex_core(grid, biases, core):
     node_idxs = rng_2d_coord_choice(core_h, core_w, nodes_n)
 
     # Scale to inside of core bounds
+    #TODO: make this return a tuple and have an offset arg if we only convert it to tuples in the end.
     node_idxs += (core_i, core_j)
 
     # Add all nodes to grid (via setting exists=True)

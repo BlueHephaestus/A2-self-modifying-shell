@@ -16,17 +16,11 @@ class Node:
 
         #self.activation = self.sigmoid
         #self.aggregation = np.sum
-        #self.bias = None
         #self.output_weight = None  # not using this for now
 
         self.in_edges = np.empty((0,2),np.intp)  # list of inputs for incoming sources, (n,2)
         self.in_weights = np.empty((0,),np.float64)  # list of weights for incoming source weights, (n,)
         self.out_edges = np.empty((0,2),np.intp)  # list of idx for dst node - used for reference when removing nodes. (n,2)
-
-
-    @staticmethod
-    def sigmoid(self, x):
-        return 1.0/(1+np.exp(-x))
 
     def remove_outgoing(self, node):
         """
@@ -95,6 +89,5 @@ class ModuleNode(Node):
         Node.__init__(self)
         self.exists = True
 
-        # Input value for this node.
-        self.input = None
-        self.aggregation = sum
+        #self.input = None
+        #self.aggregation = sum
