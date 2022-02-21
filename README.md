@@ -1,5 +1,3 @@
 NOTE: This README is out of date, I have added a lot more than I originally planned. Will update this when my wrist feels good enough to type all that.
 
 Built from A1, this Ai model seeks to use the ~~CT~~ RNN base and the NEAT algorithm we familiarized ourselves with in A1 in order to create a new network design, with a "self-mod" capability built into it as another form of output. May come back to the nematode and other connectomes in other models, but this is the next progressive step forward in code, and will allow me to pick pieces from previous ones and move forward without any individual repo getting too bloated with code and references.
-
-Second iteration of personal AI experimentation, research, and development. Built from work with nematode in model A1 to create a form of "shell" model, that enables the modular "core" RNN inside of it to self-modify its entire structure. While enabling full self-modification, not very intuitive for the core RNN to use so future experiments will likely involve improvements on that factor. 
