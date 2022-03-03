@@ -4,6 +4,7 @@ Hex is a "shell" which extends the capabilities of normal RNNs to create Hex RNN
 
 A Hex RNN could make copies of itself, design an entirely new modified version of itself, or delete components of itself with this shell.
 
+![](images/hex-rng-render-16x16.png)
 
 # Old Notes - I'm currently updating this README
 
@@ -11,5 +12,3 @@ A Hex RNN could make copies of itself, design an entirely new modified version o
 
 
 Built from A1, this Ai model seeks to use the ~~CT~~ RNN base and the NEAT algorithm we familiarized ourselves with in A1 in order to create a new network design, with a "self-mod" capability built into it as another form of output. May come back to the nematode and other connectomes in other models, but this is the next progressive step forward in code, and will allow me to pick pieces from previous ones and move forward without any individual repo getting too bloated with code and references.~~
-
-![](images/hex-rng-render-16x16.png)
