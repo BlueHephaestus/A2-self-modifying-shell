@@ -28,7 +28,6 @@ class MemoryModule(Module):
         """
         Determine if this is a valid activation for our Memory Modules
         This occurs if all of the following are true:
-            Threshold nodes exceeded
             Address evaluates to valid address, with either
                 existing memory node
                 or enough room for new memory node
@@ -36,10 +35,6 @@ class MemoryModule(Module):
         Recall that although many activations may be valid, they may do different things
             depending on the values given.
         """
-
-        # If not exceeded, we don't do anything
-        if values[self.threshold_node] <= self.threshold:
-            return False
 
         self.addr = self.get_address(values, self.addr_nodes)
 

@@ -17,7 +17,7 @@ seed = 73
 s = 1
 #n = sys.maxsize
 n = 1
-t = 10000
+t = 100000
 for seed in range(seed,seed+s):
     hex.rng.rng = default_rng(seed)
     print(f"SEED: {seed}")
@@ -51,19 +51,29 @@ for seed in range(seed,seed+s):
     # if every node is within 1e-7 of original.
     matching = True
     i = 0
-    for expected, actual in zip(control_net.values.flatten(), net.values.flatten()):
-        if expected is not None and actual is not None:
-            # if both have values
-            if abs(expected-actual) >= .00000001:
-                matching=False
-                break
+    module_nodes = []
+    for module in net.modules:
+        for node in module:
+            if node != module.threshold_node:
+                module_nodes.append(node)
 
-        elif expected != actual:
-            matching=False
-        i += 1
+    for i in range(net.values.shape[0]):
+        for j in range(net.values.shape[1]):
+            if (i,j) not in module_nodes:
+                exp = control_net.values[i,j]
+                act = net.values[i,j]
+                if exp is not None and act is not None:
+
+                    # if both have values
+                    if abs(exp-act) >= .00000001:
+                        matching=False
+                        break
+
+                elif exp != act:
+                    matching=False
 
     if not matching:
-        print(f"MISMATCH: EXPECTED {expected}, ACTUAL {actual}")
+        print(f"MISMATCH: EXPECTED {exp}, ACTUAL {act}")
 
     #plt.close(net.renderer.fig)
 

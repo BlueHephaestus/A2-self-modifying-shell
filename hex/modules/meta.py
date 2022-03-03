@@ -50,7 +50,6 @@ class MetaModule(Module):
         """
         Determine if this is a valid activation for our Meta Module
         This occurs if all of the following are true:
-            Threshold nodes exceeded
             Address evaluates to valid address, with either
                 existing module or
                 enough room for new module
@@ -62,11 +61,6 @@ class MetaModule(Module):
         Also note that this is the most powerful module, and subsequently has very stringent
             conditions for working - it's meant to be "with great power comes great responsibility"
         """
-
-        # If not exceeded, we don't do anything
-        if values[self.threshold_node] <= self.threshold:
-            return False
-
         self.addr = self.get_address(values, self.addr_nodes)
         self.module_type = self.get_module_type(values, self.module_type_nodes, self.module_type_mapping)
 

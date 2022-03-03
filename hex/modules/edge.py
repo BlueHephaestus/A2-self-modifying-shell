@@ -19,7 +19,6 @@ class EdgeModule(Module):
         """
         Determine if this is a valid activation for our Edge Modules
         This occurs if all of the following are true:
-            Threshold nodes exceeded
             Addresses evaluate to non-empty cells (can be ModuleNodes, in some cases)
             Indicated edge is valid, meaning BOTH:
                 The source node:
@@ -30,10 +29,6 @@ class EdgeModule(Module):
         Recall that although many activations may be valid, they may do different things
             depending on the values given.
         """
-
-        # If not exceeded, we don't do anything
-        if values[self.threshold_node] <= self.threshold:
-            return False
 
         self.src_addr = self.get_address(values, self.src_addr_nodes)
         self.dst_addr = self.get_address(values, self.src_addr_nodes)

@@ -22,17 +22,11 @@ class NodeModule(Module):
         """
         Determine if this is a valid activation for our Node Modules
         This occurs if all of the following are true:
-            Threshold nodes exceeded
             Address evaluates to valid address
 
         Recall that although many activations may be valid, they may do different things
             depending on the values given.
         """
-
-        # If not exceeded, we don't do anything
-        # TODO make parent function for checking threshold
-        if values[self.threshold_node] <= self.threshold:
-            return False
 
         # If address points to a ModuleNode of any type (this includes inputs and outputs)
         # Yes, this means that this module can't overwrite storage nodes - those are meant

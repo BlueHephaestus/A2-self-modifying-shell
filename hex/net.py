@@ -224,18 +224,27 @@ class HexNetwork:
             ### MODULE NODES ###
             # activate_modules
             for module in self.modules:
-                for node in module:
-                    # Compute full inputs for each module node
-                    # Recall their outputs will never be set,
-                    # And they use a different node class.
-                    self.values[node] = self.aggregate(node)
 
-                # Now that all module nodes have their full inputs computed and stored,
-                # We see if the total inputs for this module can produce a valid activation.
-                # Logic for thresholds, addresses, etc. is left up to module.
-                if module.is_valid_activation(self.grid, self.values, self.core, self.inputs, self.outputs, self.memory, self.modules):
-                    # If so, we do it and update the grid.
-                    module.activate(self.grid, self.values, self.biases, self.core, self.inputs, self.outputs, self.memory, self.modules)
+                # Compute only the threshold node, since this decides if we will need to compute the rest
+                # of the node's inputs. This is here for optimization purposes.
+                self.values[module.threshold_node] = self.aggregate(module.threshold_node)
+                if self.values[module.threshold_node] > module.threshold:
+                    # Threshold reached, check the more costly remainder of activation requirements,
+                    # which require computation of all inputs to the module.
+                    for node in module:
+                        if node != module.threshold_node:
+                            # Compute full inputs for each module node
+                            # Recall their outputs will never be set,
+                            # And they use a different node class.
+                            self.values[node] = self.aggregate(node)
+
+                            # TODO we can optimize this further by only enforcing aggregation computation when needed in this function.
+                            # Now that all module nodes have their full inputs computed and stored,
+                            # We see if the total inputs for this module can produce a valid activation.
+                            # Logic for thresholds, addresses, etc. is left up to module.
+                            if module.is_valid_activation(self.grid, self.values, self.core, self.inputs, self.outputs, self.memory, self.modules):
+                                # If so, we do it and update the grid.
+                                module.activate(self.grid, self.values, self.biases, self.core, self.inputs, self.outputs, self.memory, self.modules)
 
             if len(self.core) + len(self.memory) + len(self.modules) != prev_len:
                 #print("\nNetwork Change Detected, Rendering...")
